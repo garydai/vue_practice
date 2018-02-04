@@ -116,8 +116,12 @@ export default {
         }
         var rule = element.rule
         rule.forEach(function(element, index) {
-          element.l = constant.m[element.l]
-          element.o = constant.m[element.o]
+          if (element.l in constant.m) {
+            element.l = constant.m[element.l]
+          }
+          if (element.o in constant.m) {
+            element.o = constant.m[element.o]
+          }
           if (index % 2 === 0) {
             valid = (element.l !== '' && element.o !== '' && element.r !== '')
           }
