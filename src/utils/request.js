@@ -1,6 +1,7 @@
 import axios from 'axios'
 import { Message, MessageBox } from 'element-ui'
 import store from '../store'
+const qs = require('qs')
 // import { getToken } from '@/utils/auth'
 
 // 创建axios实例
@@ -30,7 +31,7 @@ service.interceptors.response.use(
     const res = response.data
     if (res.code !== 200) {
       Message({
-        message: res.data,
+        message: res.desc,
         type: 'error',
         duration: 5 * 1000
       })
@@ -61,5 +62,12 @@ service.interceptors.response.use(
     return Promise.reject(error)
   }
 )
+
+service.formPost = (url, params) => {
+  const dataStr = qs.stringify(params, {
+    arrayFormat: 'brackets'
+  })
+  return service.post(url, dataStr)
+}
 
 export default service

@@ -13,3 +13,8 @@ export function getVariables() {
     method: 'get'
   })
 }
+
+// todo refine
+export function updateRule(data) {
+  return request.formPost('/update', data)
+}

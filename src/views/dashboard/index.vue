@@ -1,11 +1,16 @@
 <template>
   <div class="dashboard-container">
-    <el-row v-for="(item, index) in list" :key="item.name">
+    <el-button type="primary" size="mini" @click="handleAddRule()">增加规则
+    </el-button>
+    <el-button type="primary" size="mini" @click="handleUpdateRule()">提交修改
+    </el-button>
+    <el-row v-for="(item, index) in list" :key="index">
       <el-card class="box-card">
         <div slot="header" class="clearfix">
-          <span>{{item.name}}</span>
-          <el-button type="danger" size="mini" @click="handleDeleteRelation(index)">删除规则
-          </el-button>
+          <el-input style="width: 150px;" class="filter-item" :placeholder="item.name" v-model="list[index].name">
+          </el-input>
+          <el-button type="danger" size="mini" @click="handleDeleteRule(index)">删除规则
+          </el-button>      
         </div>
         <el-button size="mini" type="primary" @click="handleAddRelation(index)">增加表达式    
         </el-button>
@@ -24,17 +29,15 @@
               <el-table-column width="180">
                  <template slot-scope="scope">
                    <el-select style="width: 150px" class="filter-item" v-model="list[index].rule[scope.$index].o">
-                    <el-option v-for="item in Object.keys(op)" :key="item" :label="op[item]" :value="op[item]">
+                    <el-option v-for="item in Object.keys(op[scope.$index % 2])" :key="item" :label="op[scope.$index % 2][item]" :value="op[scope.$index % 2][item]">
                     </el-option>
                   </el-select>
-                  <!--<span class="link-type" @click="handleUpdate(scope.row)">{{scope.row.o}}</span>-->
                 </template>
               </el-table-column>
               <el-table-column>
                 <template slot-scope="scope">
                   <el-input v-if="scope.$index % 2 == 0" style="width: 150px;" class="filter-item" :placeholder="list[index].rule[scope.$index].r" v-model="list[index].rule[scope.$index].r">
                   </el-input>
-                  <!--<span class="link-type" @click="handleUpdate(scope.row)">{{scope.row.r}}</span>-->
                 </template>
               </el-table-column>
           </el-table>       
@@ -48,6 +51,8 @@
 <script>
 import { getList } from '@/api/rule'
 import { getVariables } from '@/api/rule'
+import { updateRule } from '@/api/rule'
+import { clone } from '@/utils/util'
 const constant = require('@/utils/constant')
 
 export default {
@@ -59,7 +64,7 @@ export default {
       // todo refine
       listDisplay: [],
       mapper: {}, // chinese->english
-      op: {}
+      op: []
     }
   },
   created() {
@@ -75,15 +80,15 @@ export default {
         }
         this.op = constant.opMap
         getList().then(response => {
-          this.list = response.data
-          // this.listDisplay = [...this.list]
+          this.list = JSON.parse(response.data).rules
           this.list.forEach(function(element) {
             element.rule.forEach(function(ele) {
-              if (ele.l in this.variables) {
-                ele.l = this.variables[ele.l].dsp
+              if (ele.l in constant.m) {
+                ele.l = constant.m[ele.l]
               }
-              if (ele.o in constant.opMap) {
-                ele.o = constant.opMap[ele.o]
+
+              if (ele.o in constant.m) {
+                ele.o = constant.m[ele.o]
               }
             }, this)
           }, this)
@@ -94,17 +99,69 @@ export default {
     handleDeleteRelation(listIdx) {
       this.list[listIdx].rule.splice(-1, 1)
     },
+    handleDeleteRule(listIdx) {
+      this.list.splice(listIdx, 1)
+    },
+    handleUpdateRule() {
+      // todo 增量修改
+      var listCopy = clone(this.list)
+      var result = {
+        ver: constant.ruleVersion,
+        rules: listCopy
+      }
+      var valid = true
+      listCopy.forEach(function(element) {
+        if (element.name === '') {
+          valid = false
+        }
+        var rule = element.rule
+        rule.forEach(function(element, index) {
+          element.l = constant.m[element.l]
+          element.o = constant.m[element.o]
+          if (index % 2 === 0) {
+            valid = (element.l !== '' && element.o !== '' && element.r !== '')
+          }
+          if (index % 2 === 1) {
+            valid = (element.o !== '')
+          }
+        }, this)
+        if (rule.length % 2 === 0) {
+          valid = false
+        }
+      }, this)
+      if (!valid) {
+        this.$message('请填写完整')
+        return
+      }
+      updateRule({ input: JSON.stringify(result) }).then(response => {
+        this.$message('保存成功')
+      })
+    },
     handleAddRelation(listIdx) {
       var item = {
-        l: '请输入',
-        o: '请输入',
-        r: '请输入'
+        l: '',
+        o: '',
+        r: ''
       }
       if (this.list[listIdx].rule.length % 2) {
         item.l = ''
         item.r = ''
       }
       this.list[listIdx].rule.push(item)
+    },
+    handleAddRule(listIdx) {
+      var rule = {
+        'name': '',
+        'rule': [
+          {
+            'r': '',
+            'l': '',
+            'o': ''
+          }
+        ],
+        'action': 'warn'
+      }
+      this.list.push(rule)
     }
   }
 }
