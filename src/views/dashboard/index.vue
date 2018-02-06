@@ -28,8 +28,16 @@
               </el-table-column>
               <el-table-column width="180">
                  <template slot-scope="scope">
-                   <el-select style="width: 150px" class="filter-item" v-model="scope.row.o">
-                    <el-option v-for="t in Object.keys(op[scope.$index % 2])" :key="t" :label="op[scope.$index % 2][t]" :value="op[scope.$index % 2][t]">
+                   <el-select v-if="scope.$index % 2 == 0 && scope.row.l == ''" style="width: 150px" class="filter-item" v-model="scope.row.o">
+                    <el-option :value="''">
+                    </el-option>
+                   </el-select>
+                   <el-select v-else-if="scope.$index % 2 == 0 && scope.row.l != ''" style="width: 150px" class="filter-item" v-model="scope.row.o">
+                    <el-option v-for="t in op[scope.$index % 2][variables[mapper[scope.row.l]].type]" :key="t" :label="t" :value="t">
+                    </el-option>
+                  </el-select>
+                  <el-select v-else-if="scope.$index % 2 == 1" style="width: 150px" class="filter-item" v-model="scope.row.o">
+                    <el-option v-for="t in op[scope.$index % 2]" :key="t" :label="t" :value="t">
                     </el-option>
                   </el-select>
                 </template>
@@ -108,17 +116,17 @@ export default {
   created() {
     this.fetchData()
     this.mapper = constant.m
+    this.op = constant.opMap
   },
   methods: {
     fetchData() {
       this.listLoading = true
       getVariables().then(response => {
         this.variables = response.data
-        this.op = constant.opMap
         getList().then(response => {
           this.list = JSON.parse(response.data).rules
           this.list.forEach(function(element) {
-            element.name = element.name.replace(/^"(.*)"$/, '$1');
+            element.name = element.name.replace(/^"(.*)"$/, '$1')
             element.rule.forEach(function(ele) {
               if (ele.l in this.mapper) {
                 ele.l = this.mapper[ele.l]
@@ -129,7 +137,7 @@ export default {
               if ((ele.r_t === 'v' || ele.r_t === 'bool') && ele.r in this.mapper) {
                 ele.r = this.mapper[ele.r]
               }
-              ele.r = ele.r.replace(/^"(.*)"$/, '$1');
+              ele.r = ele.r.replace(/^"(.*)"$/, '$1')
               // if (ele.r !== '' && ele.r[0] === '"' && ele.r[ele.r.length - 1] === '"') {
               //   ele.r = ele.r.substr(1, ele.r.length - 2)
               // }
@@ -173,10 +181,10 @@ export default {
           if (element.r_t === 'v' || element.r_t === 'bool') {
             element.r = this.mapper[element.r]
           }
-          if (element.r_t === 'string') {
+          if (element.r_t.startsWith('string')) {
             element.r = '\"' + element.r + '\"'
-          } else if (element.r_t !== 'string' && element.r !== '' && element.r[0] === '"' && element.r[element.r.length - 1] === '"') {
-            element.r = element.r.substr(1, element.r.length - 2)
+          } else if (element.r !== '' && element.r[0] === '"' && element.r[element.r.length - 1] === '"') {
+            element.r = element.r.replace(/^"(.*)"$/, '$1')
           }
 
           if (index % 2 === 0) {
@@ -202,25 +210,15 @@ export default {
       var item = {
         l: '',
         o: '',
-        r: ''
-      }
-      if (this.list[listIdx].rule.length % 2) {
-        item.l = ''
-        item.r = ''
+        r: '',
+        r_t: ''
       }
       this.list[listIdx].rule.push(item)
     },
     handleAddRule(listIdx) {
       var rule = {
         'name': '',
-        'rule': [
-          {
-            'r': '',
-            'l': '',
-            'o': '',
-            'r_t': ''
-          }
-        ],
+        'rule': [],
         'action': 'warn'
       }
       this.list.push(rule)
