@@ -8,7 +8,10 @@ const mm = [
   ['==', '等于'],
   ['age', '年龄'],
   ['contact', '通讯录中的电话'],
-  ['relativePhone', '亲戚电话']
+  ['relativePhone', '亲戚电话'],
+  ['true', '是'],
+  ['false', '否'],
+  ['isBlack', '黑名单']
 ]
 
 // arr to obj ,such as { CN : "China", US : "USA" }

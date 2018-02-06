@@ -20,7 +20,7 @@
             <el-table :data="item.rule" style="width: 100%">
               <el-table-column width="180">
                 <template slot-scope="scope">
-                  <el-select v-if="scope.$index % 2 == 0" style="width: 150px" class="filter-item" v-model="list[index].rule[scope.$index].l">
+                  <el-select v-if="scope.$index % 2 == 0" style="width: 150px" class="filter-item" v-model="scope.row.l">
                     <el-option v-for="t in Object.keys(variables)" :key="t" :label="mapper[t]" :value="mapper[t]">
                     </el-option>
                   </el-select>
@@ -28,7 +28,7 @@
               </el-table-column>
               <el-table-column width="180">
                  <template slot-scope="scope">
-                   <el-select style="width: 150px" class="filter-item" v-model="list[index].rule[scope.$index].o">
+                   <el-select style="width: 150px" class="filter-item" v-model="scope.row.o">
                     <el-option v-for="t in Object.keys(op[scope.$index % 2])" :key="t" :label="op[scope.$index % 2][t]" :value="op[scope.$index % 2][t]">
                     </el-option>
                   </el-select>
@@ -36,16 +36,22 @@
               </el-table-column>
               <el-table-column>
                 <template slot-scope="scope">
-                  <span v-if="scope.$index % 2 == 0" class="link-type" @click="handleUpdateRight(list[index].rule[scope.$index])">
-                    <div v-if="list[index].rule[scope.$index].r == ''">修改</div>
-                    <div v-else>{{list[index].rule[scope.$index].r}}</div>
+                  <span v-if="scope.$index % 2 == 0" class="link-type" @click="handleUpdateRight(scope.row)">
+                    <div v-if="scope.row.r == ''">修改</div>
+                    <div v-else>{{scope.row.r}}</div>
                   </span>
                   <!--<el-input v-if="scope.$index % 2 == 0" style="width: 150px;" class="filter-item" :placeholder="list[index].rule[scope.$index].r" v-model="list[index].rule[scope.$index].r">-->
                   </el-input>
                   <el-dialog :visible.sync="dialogFormVisible">
                     <el-form :model="form" :rules="formRule" ref="ruleForm" label-width="100px" class="demo-ruleForm">
                       <el-form-item label="数值" prop="value">
-                        <el-input v-model="form.value" placeholder="请填写数值"></el-input>
+                        <el-input v-model="form.value" placeholder="请填写数值" :disabled="curRuleLeftType === 'bool'"></el-input>
+                      </el-form-item>
+                      <el-form-item label="是否" prop="determine">
+                        <el-select v-model="form.determine" placeholder="请选择" :disabled="curRuleLeftType !== 'bool'">
+                          <el-option v-for="t in boolList" :key="t" :label="t" :value="t">
+                          </el-option>
+                        </el-select>
                       </el-form-item>
                       <el-form-item label="变量" prop="variable">
                         <el-select v-model="form.variable" placeholder="请选择变量">
@@ -53,15 +59,15 @@
                           </el-option>
                         </el-select>
                       </el-form-item>
+                       
                     </el-form>
                     <div slot="footer" class="dialog-footer">
                       <el-button @click="dialogFormVisible = false">取消</el-button>
-                      <el-button type="primary" @click="saveRightValue(item.rule[scope.$index])">保存</el-button>
+                      <el-button type="primary" @click="saveRightValue()">保存</el-button>
                     </div>
                   </el-dialog>
                 </template>
               </el-table-column>
-
           </el-table>       
         </div>        
       </el-card>
@@ -82,7 +88,8 @@ export default {
     return {
       form: {
         value: '',
-        variable: ''
+        variable: '',
+        determine: ''
       },
       formRule: {
       },
@@ -92,7 +99,10 @@ export default {
       listDisplay: [],
       mapper: {}, // chinese->english
       op: [],
-      dialogFormVisible: false
+      dialogFormVisible: false,
+      curRule: {},
+      curRuleLeftType: '',
+      boolList: ['是', '否']
     }
   },
   created() {
@@ -108,19 +118,21 @@ export default {
         getList().then(response => {
           this.list = JSON.parse(response.data).rules
           this.list.forEach(function(element) {
+            element.name = element.name.replace(/^"(.*)"$/, '$1');
             element.rule.forEach(function(ele) {
-              if (ele.l in constant.m) {
-                ele.l = constant.m[ele.l]
+              if (ele.l in this.mapper) {
+                ele.l = this.mapper[ele.l]
               }
-              if (ele.o in constant.m) {
-                ele.o = constant.m[ele.o]
+              if (ele.o in this.mapper) {
+                ele.o = this.mapper[ele.o]
               }
-              if (ele.r_t === 'v' && ele.r in constant.m) {
-                ele.r = constant.m[ele.r]
+              if ((ele.r_t === 'v' || ele.r_t === 'bool') && ele.r in this.mapper) {
+                ele.r = this.mapper[ele.r]
               }
-              if (ele.r !== '' && ele.r[0] === '"' && ele.r[ele.r.length - 1] === '"') {
-                ele.r = ele.r.substr(1, ele.r.length - 2)
-              }
+              ele.r = ele.r.replace(/^"(.*)"$/, '$1');
+              // if (ele.r !== '' && ele.r[0] === '"' && ele.r[ele.r.length - 1] === '"') {
+              //   ele.r = ele.r.substr(1, ele.r.length - 2)
+              // }
             }, this)
           }, this)
           this.listLoading = false
@@ -144,24 +156,22 @@ export default {
       listCopy.forEach(function(element) {
         if (element.name === '') {
           valid = false
+        } else {
+          element.name = '"' + element.name + '"'
         }
         var rule = element.rule
         rule.forEach(function(element, index) {
-          if (element.l in constant.m) {
-            element.l = constant.m[element.l]
+          if (element.l in this.mapper) {
+            element.l = this.mapper[element.l]
           }
-          if (element.o in constant.m) {
-            element.o = constant.m[element.o]
+          if (element.o in this.mapper) {
+            element.o = this.mapper[element.o]
           }
-
           if (element.r_t !== 'v' && element.r !== '') {
-            console.log(1)
-            console.log(element)
-            element.r_t = this.variables[element.l].type // 非variable
-          } else if (element.r_t === 'v') {
-            console.log(2)
-            console.log(element)
-            element.r = constant.m[element.r]
+            element.r_t = this.variables[element.l].type // 非variable, 类型同left
+          }
+          if (element.r_t === 'v' || element.r_t === 'bool') {
+            element.r = this.mapper[element.r]
           }
           if (element.r_t === 'string') {
             element.r = '\"' + element.r + '\"'
@@ -216,22 +226,32 @@ export default {
       this.list.push(rule)
     },
     handleUpdateRight(rule) {
+      this.curRule = rule
+      this.curRuleLeftType = this.variables[this.mapper[rule.l]].type
       this.form.variable = ''
       this.form.value = ''
-      if (rule.r_t === 'v') {
-        this.form.variable = rule.r
-      } else {
-        this.form.value = rule.r
-      }
+      this.form.determine = ''
+      // if (rule.r_t === 'v') {
+      //   this.form.variable = rule.r
+      // } else {
+      //   this.form.value = rule.r
+      // }
+      // if (this.curRuleLeftType === 'bool') {
+      //   this.form.determine = rule.r
+      // }
       this.dialogFormVisible = true
     },
-    saveRightValue(rightExpression) {
-      if (this.form.value !== '') {
-        rightExpression.r = this.form.value // 优先数值
-        rightExpression.r_t = '' // 类型由最后提交的时候修改
+    saveRightValue() {
+      if (this.form.determine !== '' && this.curRuleLeftType === 'bool') {
+        // bool型
+        this.curRule.r = this.form.determine
+        this.curRule.r_t = 'bool'
+      } else if (this.form.value !== '') { // 优先数值
+        this.curRule.r = this.form.value
+        this.curRule.r_t = '' // 类型由最后提交的时候修改
       } else if (this.form.variable !== '') {
-        rightExpression.r = this.form.variable // 优先数值
-        rightExpression.r_t = 'v' // 变量
+        this.curRule.r = this.form.variable // 优先数值
+        this.curRule.r_t = 'v' // 变量
       }
       this.dialogFormVisible = false
     }
