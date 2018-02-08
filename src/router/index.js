@@ -36,25 +36,24 @@ export const constantRouterMap = [
       component: () => import('@/views/dashboard/index')
     }]
   },
-
   {
-    path: '/example',
+    path: '/engine',
     component: Layout,
-    redirect: '/example/table',
-    name: 'Example',
-    meta: { title: 'Example', icon: 'example' },
+    redirect: '/engine/rule',
+    name: 'engine',
+    meta: { title: '规则引擎', icon: 'example' },
     children: [
       {
-        path: 'table',
-        name: 'Table',
-        component: () => import('@/views/table/index'),
-        meta: { title: 'Table', icon: 'table' }
+        path: 'rule',
+        name: 'rule',
+        component: () => import('@/views/rule/index'),
+        meta: { title: '规则', icon: 'table' }
       },
       {
-        path: 'tree',
-        name: 'Tree',
-        component: () => import('@/views/tree/index'),
-        meta: { title: 'Tree', icon: 'tree' }
+        path: 'test',
+        name: 'test',
+        component: () => import('@/views/rule/test'),
+        meta: { title: '测试', icon: 'tree' }
       }
     ]
   },

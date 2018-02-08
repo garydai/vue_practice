@@ -18,3 +18,7 @@ export function getVariables() {
 export function updateRule(data) {
   return request.formPost('/update', data)
 }
+
+export function executeRule(data) {
+  return request.formPost('/execute', data)
+}
