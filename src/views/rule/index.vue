@@ -123,6 +123,12 @@ export default {
       this.listLoading = true
       getVariables().then(response => {
         this.variables = response.data
+        var nul = {
+          'type': 'null',
+          'displayName': '空值'
+        }
+        this.variables['null'] = nul
+
         for (var key in this.variables) {
           this.mapper[this.variables[key].displayName] = key
           this.mapper[key] = this.variables[key].displayName
@@ -184,7 +190,7 @@ export default {
           if (element.r_t === 'v' || element.r_t === 'Boolean') {
             element.r = this.mapper[element.r]
           }
-          if (element.r_t.startsWith('String')) {
+          if (element.r_t.indexOf('String') !== -1) {
             element.r = '\"' + element.r + '\"'
           } else if (element.r !== '' && element.r[0] === '"' && element.r[element.r.length - 1] === '"') {
             element.r = element.r.replace(/^"(.*)"$/, '$1')
@@ -218,6 +224,9 @@ export default {
       })
     },
     push(variables, variablesMap, value) {
+      if (value === 'null') {
+        return
+      }
       if (!(value in variablesMap)) {
         variables.push(value)
         variablesMap[value] = 1

@@ -11,7 +11,8 @@ const mm = [
   ['false', '否'],
   ['isBlack', '黑名单'],
   ['contains', '包括'],
-  ['notcontains', '不包括']
+  ['notcontains', '不包括'],
+  ['null', '空值']
 ]
 
 // arr to obj ,such as { CN : "China", US : "USA" }
@@ -52,7 +53,8 @@ module.exports = {
         '等于',
         '不等于'
       ],
-      'Strings': [
+      'List.String': [
+        '等于',
         '包括',
         '不包括'
       ]
