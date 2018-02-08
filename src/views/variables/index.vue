@@ -37,14 +37,18 @@ export default {
     }
   },
   created() {
-    this.fetchData()
     this.mapper = constant.m
+    this.fetchData()
   },
   methods: {
     fetchData() {
       getVariables().then(response => {
-        this.list = Object.keys(response.data)
         this.variables = response.data
+        for (var key in this.variables) {
+          this.mapper[this.variables[key].displayName] = key
+          this.mapper[key] = this.variables[key].displayName
+        }
+        this.list = Object.keys(response.data)
       })
     }
   }

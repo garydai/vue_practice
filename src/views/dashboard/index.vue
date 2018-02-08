@@ -53,10 +53,10 @@
                   <el-dialog :visible.sync="dialogFormVisible">
                     <el-form :model="form" :rules="formRule" ref="ruleForm" label-width="100px" class="demo-ruleForm">
                       <el-form-item label="数值" prop="value">
-                        <el-input v-model="form.value" placeholder="请填写数值" :disabled="curRuleLeftType === 'bool'"></el-input>
+                        <el-input v-model="form.value" placeholder="请填写数值" :disabled="curRuleLeftType === 'Boolean'"></el-input>
                       </el-form-item>
                       <el-form-item label="是否" prop="determine">
-                        <el-select v-model="form.determine" placeholder="请选择" :disabled="curRuleLeftType !== 'bool'">
+                        <el-select v-model="form.determine" placeholder="请选择" :disabled="curRuleLeftType !== 'Boolean'">
                           <el-option v-for="t in boolList" :key="t" :label="t" :value="t">
                           </el-option>
                         </el-select>
@@ -114,15 +114,19 @@ export default {
     }
   },
   created() {
-    this.fetchData()
     this.mapper = constant.m
     this.op = constant.opMap
+    this.fetchData()
   },
   methods: {
     fetchData() {
       this.listLoading = true
       getVariables().then(response => {
         this.variables = response.data
+        for (var key in this.variables) {
+          this.mapper[this.variables[key].displayName] = key
+          this.mapper[key] = this.variables[key].displayName
+        }
         getList().then(response => {
           this.list = JSON.parse(response.data).rules
           this.list.forEach(function(element) {
@@ -134,13 +138,10 @@ export default {
               if (ele.o in this.mapper) {
                 ele.o = this.mapper[ele.o]
               }
-              if ((ele.r_t === 'v' || ele.r_t === 'bool') && ele.r in this.mapper) {
+              if ((ele.r_t === 'v' || ele.r_t === 'Boolean') && ele.r in this.mapper) {
                 ele.r = this.mapper[ele.r]
               }
               ele.r = ele.r.replace(/^"(.*)"$/, '$1')
-              // if (ele.r !== '' && ele.r[0] === '"' && ele.r[ele.r.length - 1] === '"') {
-              //   ele.r = ele.r.substr(1, ele.r.length - 2)
-              // }
             }, this)
           }, this)
           this.listLoading = false
@@ -161,6 +162,8 @@ export default {
         rules: listCopy
       }
       var valid = true
+      var variables = []
+      var variablesMap = {}
       listCopy.forEach(function(element) {
         if (element.name === '') {
           valid = false
@@ -178,10 +181,10 @@ export default {
           if (element.r_t !== 'v' && element.r !== '') {
             element.r_t = this.variables[element.l].type // 非variable, 类型同left
           }
-          if (element.r_t === 'v' || element.r_t === 'bool') {
+          if (element.r_t === 'v' || element.r_t === 'Boolean') {
             element.r = this.mapper[element.r]
           }
-          if (element.r_t.startsWith('string')) {
+          if (element.r_t.startsWith('String')) {
             element.r = '\"' + element.r + '\"'
           } else if (element.r !== '' && element.r[0] === '"' && element.r[element.r.length - 1] === '"') {
             element.r = element.r.replace(/^"(.*)"$/, '$1')
@@ -193,6 +196,13 @@ export default {
           if (index % 2 === 1) {
             valid = (element.o !== '')
           }
+
+          if (element.l !== '') {
+            this.push(variables, variablesMap, element.l)
+          }
+          if (element.r_t === 'v') {
+            this.push(variables, variablesMap, element.r)
+          }
         }, this)
         if (rule.length % 2 === 0) {
           valid = false
@@ -202,9 +212,16 @@ export default {
         this.$message('请填写完整')
         return
       }
+      result.variables = variables
       updateRule({ input: JSON.stringify(result) }).then(response => {
         this.$message('保存成功')
       })
+    },
+    push(variables, variablesMap, value) {
+      if (!(value in variablesMap)) {
+        variables.push(value)
+        variablesMap[value] = 1
+      }
     },
     handleAddRelation(listIdx) {
       var item = {
@@ -229,21 +246,13 @@ export default {
       this.form.variable = ''
       this.form.value = ''
       this.form.determine = ''
-      // if (rule.r_t === 'v') {
-      //   this.form.variable = rule.r
-      // } else {
-      //   this.form.value = rule.r
-      // }
-      // if (this.curRuleLeftType === 'bool') {
-      //   this.form.determine = rule.r
-      // }
       this.dialogFormVisible = true
     },
     saveRightValue() {
-      if (this.form.determine !== '' && this.curRuleLeftType === 'bool') {
+      if (this.form.determine !== '' && this.curRuleLeftType === 'Boolean') {
         // bool型
         this.curRule.r = this.form.determine
-        this.curRule.r_t = 'bool'
+        this.curRule.r_t = 'Boolean'
       } else if (this.form.value !== '') { // 优先数值
         this.curRule.r = this.form.value
         this.curRule.r_t = '' // 类型由最后提交的时候修改

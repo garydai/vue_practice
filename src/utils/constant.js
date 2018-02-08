@@ -7,9 +7,6 @@ const mm = [
   ['<=', '小于等于'],
   ['==', '等于'],
   ['!=', '不等于'],
-  ['age', '年龄'],
-  ['contact', '通讯录中的电话'],
-  ['relativePhone', '亲戚电话'],
   ['true', '是'],
   ['false', '否'],
   ['isBlack', '黑名单'],
@@ -31,7 +28,7 @@ module.exports = {
   },
   opMap: [
     {
-      'int': [
+      'Integer': [
         '大于',
         '小于',
         '大于等于',
@@ -39,7 +36,7 @@ module.exports = {
         '等于',
         '不等于'
       ],
-      'bool': [
+      'Boolean': [
         '大于',
         '小于',
         '大于等于',
@@ -47,7 +44,7 @@ module.exports = {
         '等于',
         '不等于'
       ],
-      'string': [
+      'String': [
         '大于',
         '小于',
         '大于等于',
@@ -55,7 +52,7 @@ module.exports = {
         '等于',
         '不等于'
       ],
-      'strings': [
+      'Strings': [
         '包括',
         '不包括'
       ]
