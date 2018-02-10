@@ -185,7 +185,7 @@ export default {
             element.o = this.mapper[element.o]
           }
           if (element.r_t !== 'v' && element.r !== '') {
-            element.r_t = this.variables[element.l].type // 非variable, 类型同left
+            element.r_t = this.variables[element.l].type.replace('List.', '') // 非variable, 类型同left
           }
           if (element.r_t === 'v' || element.r_t === 'Boolean') {
             element.r = this.mapper[element.r]
