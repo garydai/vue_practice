@@ -9,7 +9,6 @@ const mm = [
   ['ne', '不等于'],
   ['true', '是'],
   ['false', '否'],
-  ['isBlack', '黑名单'],
   ['contains', '包括'],
   ['notcontains', '不包括'],
   ['null', '空值']
