@@ -80,6 +80,19 @@
         </div>        
       </el-card>
     </el-row>
+    <el-row>
+      <el-card class="box-card">
+        <div slot="header" class="clearfix">
+          <span>命中规则</span>
+        </div>
+        <div style="margin-bottom:50px;">
+          <template>
+            <el-radio v-model="hitRadio" label="and">全命中</el-radio>
+            <el-radio v-model="hitRadio" label="or">部分命中</el-radio>
+          </template>
+        </div>
+      </el-card>
+    </el-row>
   </div>
 </template>
 
@@ -110,7 +123,9 @@ export default {
       dialogFormVisible: false,
       curRule: {},
       curRuleLeftType: '',
-      boolList: ['是', '否']
+      boolList: ['是', '否'],
+      hitRadio: 'and',
+      listLoading: true
     }
   },
   created() {
@@ -134,6 +149,7 @@ export default {
           this.mapper[key] = this.variables[key].displayName
         }
         getList().then(response => {
+          this.hitRadio = JSON.parse(response.data).hit
           this.list = JSON.parse(response.data).rules
           this.list.forEach(function(element) {
             element.name = element.name.replace(/^"(.*)"$/, '$1')
@@ -210,6 +226,7 @@ export default {
             this.push(variables, variablesMap, element.r)
           }
         }, this)
+
         if (rule.length % 2 === 0) {
           valid = false
         }
@@ -219,6 +236,7 @@ export default {
         return
       }
       result.variables = variables
+      result.hit = this.hitRadio
       updateRule({ input: JSON.stringify(result) }).then(response => {
         this.$message('保存成功')
       })
