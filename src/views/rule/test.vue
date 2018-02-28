@@ -42,8 +42,8 @@
 </template>
 
 <script>
-import { executeRule } from '@/api/rule'
 import { getVariables } from '@/api/rule'
+import { testRule } from '@/api/rule'
 const constant = require('@/utils/constant')
 
 export default {
@@ -75,7 +75,7 @@ export default {
           p[this.mapper[element.key]] = element.value
         }
       }, this)
-      executeRule(p).then(response => {
+      testRule(p).then(response => {
         this.result = response.data
       })
     },

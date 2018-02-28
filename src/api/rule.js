@@ -22,3 +22,12 @@ export function updateRule(data) {
 export function executeRule(data) {
   return request.formPost('/execute', data)
 }
+
+export function testRule(data) {
+  return request.formPost('/test', data)
+}
+
+export function activateRule(data) {
+  return request.formPost('/activate', data)
+}
+

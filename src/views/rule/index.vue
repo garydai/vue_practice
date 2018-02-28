@@ -1,8 +1,10 @@
 <template>
   <div class="dashboard-container">
-    <el-button type="primary" size="small" @click="handleAddRule()">增加规则
-    </el-button>
-    <el-button type="primary" size="small" @click="handleUpdateRule()">提交修改
+    <el-button type="primary" size="small" @click="handleAddRule()">增加规则</el-button>
+    <el-button type="primary" size="small" @click="handleUpdateRule()">提交修改</el-button>
+    <el-button class="enable_rule_button" type="danger " size="small" @click="handleEnableRule()" :disabled="rule.enabled">
+      <div v-if="rule.enabled">已启用规则</div>
+      <div v-else>启用规则</div>
     </el-button>
     <el-row v-for="(item, index) in list" :key="index">
       <el-card class="box-card">
@@ -87,8 +89,8 @@
         </div>
         <div style="margin-bottom:50px;">
           <template>
-            <el-radio v-model="hitRadio" label="and">全命中</el-radio>
-            <el-radio v-model="hitRadio" label="or">部分命中</el-radio>
+            <el-radio v-model="hitRadio" label="or">满足任意规则</el-radio>
+            <el-radio v-model="hitRadio" label="and">满足所有规则</el-radio>            
           </template>
         </div>
       </el-card>
@@ -100,6 +102,7 @@
 import { getList } from '@/api/rule'
 import { getVariables } from '@/api/rule'
 import { updateRule } from '@/api/rule'
+import { activateRule } from '@/api/rule'
 import { clone } from '@/utils/util'
 const constant = require('@/utils/constant')
 
@@ -124,8 +127,9 @@ export default {
       curRule: {},
       curRuleLeftType: '',
       boolList: ['是', '否'],
-      hitRadio: 'and',
-      listLoading: true
+      hitRadio: 'or',
+      listLoading: true,
+      rule: {}
     }
   },
   created() {
@@ -149,8 +153,10 @@ export default {
           this.mapper[key] = this.variables[key].displayName
         }
         getList().then(response => {
-          this.hitRadio = JSON.parse(response.data).hit
-          this.list = JSON.parse(response.data).rules
+          this.rule = response.data
+          var input = JSON.parse(response.data.input)
+          this.hitRadio = input.hit
+          this.list = input.rules
           this.list.forEach(function(element) {
             element.name = element.name.replace(/^"(.*)"$/, '$1')
             element.rule.forEach(function(ele) {
@@ -239,6 +245,7 @@ export default {
       result.hit = this.hitRadio
       updateRule({ input: JSON.stringify(result) }).then(response => {
         this.$message('保存成功')
+        this.fetchData()
       })
     },
     push(variables, variablesMap, value) {
@@ -288,6 +295,15 @@ export default {
         this.curRule.r_t = 'v' // 变量
       }
       this.dialogFormVisible = false
+    },
+    handleEnableRule() {
+      if (this.rule.enabled) {
+        this.$message('规则已启用')
+      }
+      activateRule({ id: this.rule.id }).then(response => {
+        this.$message('启用成功')
+        this.fetchData()
+      })
     }
   }
 }
@@ -302,5 +318,9 @@ export default {
     font-size: 30px;
     line-height: 46px;
   }
+}
+.enable_rule_button {
+  right: 30px;
+  position: absolute;
 }
 </style>
