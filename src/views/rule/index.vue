@@ -1,309 +1,181 @@
 <template>
   <div class="dashboard-container">
-    <el-button type="primary" size="small" @click="handleAddRule()">增加规则</el-button>
-    <el-button type="primary" size="small" @click="handleUpdateRule()">提交修改</el-button>
-    <el-button class="enable_rule_button" type="danger " size="small" @click="handleEnableRule()" :disabled="rule.enabled">
-      <div v-if="rule.enabled">已启用规则</div>
-      <div v-else>启用规则</div>
-    </el-button>
-    <el-row v-for="(item, index) in list" :key="index">
-      <el-card class="box-card">
-        <div slot="header" class="clearfix">
-          <el-input style="width: 150px;" class="filter-item" :placeholder="item.name" v-model="list[index].name">
-          </el-input>
-          <el-button type="danger" size="mini" @click="handleDeleteRule(index)">删除规则
-          </el-button>      
-        </div>
-        <el-button size="mini" type="primary" @click="handleAddRelation(index)">增加表达式    
-        </el-button>
-        <el-button type="danger" size="mini" @click="handleDeleteRelation(index)">删除表达式
-        </el-button>
-        <div style="margin-bottom:50px;">
-            <el-table :data="item.rule" style="width: 100%">
-              <el-table-column width="180">
-                <template slot-scope="scope">
-                  <el-select v-if="scope.$index % 2 == 0" style="width: 150px" class="filter-item" v-model="scope.row.l">
-                    <el-option v-for="t in Object.keys(variables)" :key="t" :label="mapper[t]" :value="mapper[t]">
-                    </el-option>
-                  </el-select>
-                </template>
-              </el-table-column>
-              <el-table-column width="180">
-                 <template slot-scope="scope">
-                   <el-select v-if="scope.$index % 2 == 0 && scope.row.l == ''" style="width: 150px" class="filter-item" v-model="scope.row.o">
-                    <el-option :value="''">
-                    </el-option>
-                   </el-select>
-                   <el-select v-else-if="scope.$index % 2 == 0 && scope.row.l != ''" style="width: 150px" class="filter-item" v-model="scope.row.o">
-                    <el-option v-for="t in op[scope.$index % 2][variables[mapper[scope.row.l]].type]" :key="t" :label="t" :value="t">
-                    </el-option>
-                  </el-select>
-                  <el-select v-else-if="scope.$index % 2 == 1" style="width: 150px" class="filter-item" v-model="scope.row.o">
-                    <el-option v-for="t in op[scope.$index % 2]" :key="t" :label="t" :value="t">
-                    </el-option>
-                  </el-select>
-                </template>
-              </el-table-column>
-              <el-table-column>
-                <template slot-scope="scope">
-                  <span v-if="scope.$index % 2 == 0" class="link-type" @click="handleUpdateRight(scope.row)">
-                    <div v-if="scope.row.r == ''">修改</div>
-                    <div v-else>{{scope.row.r}}</div>
-                  </span>
-                  <!--<el-input v-if="scope.$index % 2 == 0" style="width: 150px;" class="filter-item" :placeholder="list[index].rule[scope.$index].r" v-model="list[index].rule[scope.$index].r">-->
-                  </el-input>
-                  <el-dialog :visible.sync="dialogFormVisible">
-                    <el-form :model="form" :rules="formRule" ref="ruleForm" label-width="100px" class="demo-ruleForm">
-                      <el-form-item label="数值" prop="value">
-                        <el-input v-model="form.value" placeholder="请填写数值" :disabled="curRuleLeftType === 'Boolean'"></el-input>
-                      </el-form-item>
-                      <el-form-item label="是否" prop="determine">
-                        <el-select v-model="form.determine" placeholder="请选择" :disabled="curRuleLeftType !== 'Boolean'">
-                          <el-option v-for="t in boolList" :key="t" :label="t" :value="t">
-                          </el-option>
-                        </el-select>
-                      </el-form-item>
-                      <el-form-item label="变量" prop="variable">
-                        <el-select v-model="form.variable" placeholder="请选择变量">
-                          <el-option v-for="t in Object.keys(variables)" :key="t" :label="mapper[t]" :value="mapper[t]">
-                          </el-option>
-                        </el-select>
-                      </el-form-item>
-                       
-                    </el-form>
-                    <div slot="footer" class="dialog-footer">
-                      <el-button @click="dialogFormVisible = false">取消</el-button>
-                      <el-button type="primary" @click="saveRightValue()">保存</el-button>
-                    </div>
-                  </el-dialog>
-                </template>
-              </el-table-column>
-          </el-table>       
-        </div>        
-      </el-card>
-    </el-row>
-    <el-row>
-      <el-card class="box-card">
-        <div slot="header" class="clearfix">
-          <span>命中规则</span>
-        </div>
-        <div style="margin-bottom:50px;">
-          <template>
-            <el-radio v-model="hitRadio" label="or">满足任意规则</el-radio>
-            <el-radio v-model="hitRadio" label="and">满足所有规则</el-radio>            
+    <el-card class="box-card">
+      <div slot="header" class="clearfix">
+        <span>checkpoints</span>
+      </div>
+      <el-table :data="list" border fit highlight-current-row style="width: 100%">
+        <el-table-column prop="id" label="编号"></el-table-column>
+        <el-table-column prop="createdTime" label="更新时间"></el-table-column>
+        <el-table-column label="是否启用">
+          <template slot-scope="scope">
+            <span v-if="scope.row.enabled">已启用</span>
+            <span v-else>未启用</span>
           </template>
+        </el-table-column>
+        <el-table-column label="操作">
+          <template slot-scope="scope">
+            <el-button type="primary" @click="modify(scope.row)" size="small" icon="el-icon-edit">修改</el-button>
+            <el-button type="danger" @click="remove(scope.row)" size="small" icon="el-icon-edit">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+    </el-card>
+    <el-card class="box-card">
+      <div slot="header" class="clearfix">
+        <span>workflow</span>
+         <el-button style="right: 100px; position: absolute;" type="primary" size="small" @click="addFlow()">新增流程</el-button>
+        <el-button style="right: 40px; position: absolute;" type="primary" size="small" @click="saveFlow()">保存</el-button>
+      </div>
+      <div class="block">
+        <el-tree
+          :data="data"
+          default-expand-all
+          :expand-on-click-node="false"
+          :render-content="renderContent">
+        </el-tree>
+      </div>      
+      <el-dialog :visible.sync="dialogFormVisible">
+        <el-form :model="form" ref="ruleForm" label-width="150px" class="demo-ruleForm">
+          <el-form-item label="如果命中该drl，则运行" prop="variable">
+            <el-select v-model="form.hit" placeholder="请选择规则集">
+              <el-option v-for="t in filterList(list)" :key="t.id" :label="t.id" :value="t.id">
+              </el-option>
+            </el-select>
+          </el-form-item>
+          <el-form-item label="否则，运行" prop="variable">
+            <el-select v-model="form.nothit" placeholder="请选择变量集">
+              <el-option v-for="t in filterList(list)" :key="t.id" :label="t.id" :value="t.id">
+              </el-option>
+            </el-select>
+          </el-form-item>
+        </el-form>
+        <div slot="footer" class="dialog-footer">
+          <el-button @click="dialogFormVisible = false">取消</el-button>
+          <el-button type="primary" @click="addChild()">保存</el-button>
         </div>
-      </el-card>
-    </el-row>
+      </el-dialog>
+      <el-dialog :visible.sync="flowVisible">
+        <el-form :model="flow" ref="ruleForm" label-width="100px" class="demo-ruleForm">
+          <el-form-item label="新流程" prop="variable">
+            <el-select v-model="flow.id" placeholder="请选择规则集">
+              <el-option v-for="t in filterList(list)" :key="t.id" :label="t.id" :value="t.id">
+              </el-option>
+            </el-select>
+          </el-form-item>
+        </el-form>
+        <div slot="footer" class="dialog-footer">
+          <el-button @click="flowVisible = false">取消</el-button>
+          <el-button type="primary" @click="addFlowSave()">保存</el-button>
+        </div>
+      </el-dialog>
+    </el-card>
   </div>
 </template>
 
 <script>
 import { getList } from '@/api/rule'
-import { getVariables } from '@/api/rule'
-import { updateRule } from '@/api/rule'
-import { activateRule } from '@/api/rule'
-import { clone } from '@/utils/util'
-const constant = require('@/utils/constant')
+import { insertFlow } from '@/api/rule'
+// import { clone } from '@/utils/util'
+import { getFlow } from '@/api/rule'
 
+let nid = 100
 export default {
   name: 'dashboard',
   data() {
     return {
-      form: {
-        value: '',
-        variable: '',
-        determine: ''
-      },
-      formRule: {
-      },
       list: [],
-      variables: {},
-      // todo refine
-      listDisplay: [],
-      mapper: {}, // chinese->english
-      op: [],
+      data: [],
       dialogFormVisible: false,
-      curRule: {},
-      curRuleLeftType: '',
-      boolList: ['是', '否'],
-      hitRadio: 'or',
-      listLoading: true,
-      rule: {}
+      flowVisible: false,
+      form: {
+        hit: -1,
+        nothit: -1
+      },
+      flow: {
+        id: -1
+      },
+      currentNode: {}
     }
   },
   created() {
-    this.mapper = constant.m
-    this.op = constant.opMap
     this.fetchData()
   },
   methods: {
+    append(data) {
+      this.currentNode = data
+      this.form = { hit: -1, nothit: -1 }
+      this.dialogFormVisible = true
+    },
+    remove(node, data) {
+      const parent = node.parent
+      if (!(parent.data instanceof Array)) {
+        this.$set(parent.data, 'children', [])
+      } else {
+        const children = parent.data
+        const index = children.indexOf(data)
+        // const index = children.findIndex(d => d.id === data.id)
+        children.splice(index, 1)
+      }
+    },
     fetchData() {
-      this.listLoading = true
-      getVariables().then(response => {
-        this.variables = response.data
-        var nul = {
-          'type': 'null',
-          'displayName': '空值'
-        }
-        this.variables['null'] = nul
-
-        for (var key in this.variables) {
-          this.mapper[this.variables[key].displayName] = key
-          this.mapper[key] = this.variables[key].displayName
-        }
-        getList().then(response => {
-          this.rule = response.data
-          var input = JSON.parse(response.data.input)
-          this.hitRadio = input.hit
-          this.list = input.rules
-          this.list.forEach(function(element) {
-            element.name = element.name.replace(/^"(.*)"$/, '$1')
-            element.rule.forEach(function(ele) {
-              if (ele.l in this.mapper) {
-                ele.l = this.mapper[ele.l]
+      getList().then(response => {
+        this.list = response.data
+        getFlow().then(flowResp => {
+          if (Object.keys(flowResp.data).length === 0) {
+            this.list.forEach(function(element) {
+              if (element.enabled) {
+                this.data.push({ id: nid++, label: element.id, children: [] })
               }
-              if (ele.o in this.mapper) {
-                ele.o = this.mapper[ele.o]
-              }
-              if ((ele.r_t === 'v' || ele.r_t === 'Boolean') && ele.r in this.mapper) {
-                ele.r = this.mapper[ele.r]
-              }
-              ele.r = ele.r.replace(/^"(.*)"$/, '$1')
             }, this)
-          }, this)
-          this.listLoading = false
+          } else {
+            this.data = JSON.parse(flowResp.data.workflow)
+          }
         })
       })
     },
-    handleDeleteRelation(listIdx) {
-      this.list[listIdx].rule.splice(-1, 1)
+    modify(row) {
+      this.$router.push('/engine/drl?id=' + row.id)
     },
-    handleDeleteRule(listIdx) {
-      this.list.splice(listIdx, 1)
+    renderContent(h, { node, data, store }) {
+      return (
+        <span class='custom-tree-node'>
+          <span>{node.label}</span>
+          <span>
+            <el-button size='mini' type='text' on-click={ () => this.append(data) }>增加子流程</el-button>
+            <el-button size='mini' type='text' on-click={ () => this.remove(node, data) }>删除该流程</el-button>
+          </span>
+        </span>)
     },
-    handleUpdateRule() {
-      // todo 增量修改
-      var listCopy = clone(this.list)
-      var result = {
-        ver: constant.ruleVersion,
-        rules: listCopy
-      }
-      var valid = true
-      var variables = []
-      var variablesMap = {}
-      listCopy.forEach(function(element) {
-        if (element.name === '') {
-          valid = false
-        } else {
-          element.name = '"' + element.name + '"'
-        }
-        var rule = element.rule
-        rule.forEach(function(element, index) {
-          if (element.l in this.mapper) {
-            element.l = this.mapper[element.l]
-          }
-          if (element.o in this.mapper) {
-            element.o = this.mapper[element.o]
-          }
-          if (element.r_t !== 'v' && element.r !== '') {
-            element.r_t = this.variables[element.l].type.replace('List.', '') // 非variable, 类型同left
-          }
-          if (element.r_t === 'v' || element.r_t === 'Boolean') {
-            element.r = this.mapper[element.r]
-          }
-          if (element.r_t.indexOf('String') !== -1) {
-            element.r = '\"' + element.r + '\"'
-          } else if (element.r !== '' && element.r[0] === '"' && element.r[element.r.length - 1] === '"') {
-            element.r = element.r.replace(/^"(.*)"$/, '$1')
-          }
-
-          if (index % 2 === 0) {
-            valid = (element.l !== '' && element.o !== '' && element.r !== '')
-          }
-          if (index % 2 === 1) {
-            valid = (element.o !== '')
-          }
-
-          if (element.l !== '') {
-            this.push(variables, variablesMap, element.l)
-          }
-          if (element.r_t === 'v') {
-            this.push(variables, variablesMap, element.r)
-          }
-        }, this)
-
-        if (rule.length % 2 === 0) {
-          valid = false
-        }
-      }, this)
-      if (!valid) {
-        this.$message('请填写完整')
-        return
-      }
-      result.variables = variables
-      result.hit = this.hitRadio
-      updateRule({ input: JSON.stringify(result) }).then(response => {
-        this.$message('保存成功')
-        this.fetchData()
+    filterList(list) {
+      return list.filter(data => {
+        return data.enabled === true
       })
     },
-    push(variables, variablesMap, value) {
-      if (value === 'null') {
-        return
-      }
-      if (!(value in variablesMap)) {
-        variables.push(value)
-        variablesMap[value] = 1
-      }
-    },
-    handleAddRelation(listIdx) {
-      var item = {
-        l: '',
-        o: '',
-        r: '',
-        r_t: ''
-      }
-      this.list[listIdx].rule.push(item)
-    },
-    handleAddRule(listIdx) {
-      var rule = {
-        'name': '',
-        'rule': [],
-        'action': 'warn'
-      }
-      this.list.push(rule)
-    },
-    handleUpdateRight(rule) {
-      this.curRule = rule
-      this.curRuleLeftType = this.variables[this.mapper[rule.l]].type
-      this.form.variable = ''
-      this.form.value = ''
-      this.form.determine = ''
-      this.dialogFormVisible = true
-    },
-    saveRightValue() {
-      if (this.form.determine !== '' && this.curRuleLeftType === 'Boolean') {
-        // bool型
-        this.curRule.r = this.form.determine
-        this.curRule.r_t = 'Boolean'
-      } else if (this.form.value !== '') { // 优先数值
-        this.curRule.r = this.form.value
-        this.curRule.r_t = '' // 类型由最后提交的时候修改
-      } else if (this.form.variable !== '') {
-        this.curRule.r = this.form.variable // 优先数值
-        this.curRule.r_t = 'v' // 变量
-      }
+    addChild() {
+      const hitChild = { id: nid++, label: this.form.hit, children: [] }
+      const nothitChild = { id: nid++, label: this.form.nothit, children: [] }
+      this.$set(this.currentNode, 'children', [])
+      this.currentNode.children.push(hitChild)
+      this.currentNode.children.push(nothitChild)
       this.dialogFormVisible = false
     },
-    handleEnableRule() {
-      if (this.rule.enabled) {
-        this.$message('规则已启用')
-      }
-      activateRule({ id: this.rule.id }).then(response => {
-        this.$message('启用成功')
-        this.fetchData()
+    saveFlow() {
+      // var tmp = clone(this.data)
+      // tmp.filter(ele => {
+      //   return delete ele['id']
+      // })
+      insertFlow({ 'workflow': JSON.stringify(this.data) }).then(response => {
+        this.$message('保存成功')
       })
+    },
+    addFlow() {
+      this.flowVisible = true
+    },
+    addFlowSave() {
+      const child = { id: nid++, label: this.flow.id, children: [] }
+      this.data.push(child)
+      this.flowVisible = false
     }
   }
 }
@@ -322,5 +194,16 @@ export default {
 .enable_rule_button {
   right: 30px;
   position: absolute;
+}
+</style>
+
+<style>
+.custom-tree-node {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 14px;
+  padding-right: 8px;
 }
 </style>

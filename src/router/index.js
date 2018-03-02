@@ -54,10 +54,16 @@ export const constantRouterMap = [
         name: 'test',
         component: () => import('@/views/rule/test'),
         meta: { title: '测试', icon: 'tree' }
+      },
+      {
+        path: 'drl',
+        name: 'drl',
+        component: () => import('@/views/rule/drl'),
+        hidden: true,
+        meta: { title: 'drl' }
       }
     ]
   },
-
   {
     path: '/variables',
     component: Layout,
