@@ -6,6 +6,10 @@
       <div v-if="rule.enabled">已启用规则</div>
       <div v-else>启用规则</div>
     </el-button>
+    <el-card class="box-card">
+      <span>checkoutpoint</span>
+      <el-input style="width: 150px;" class="filter-item" v-model="rule.name"></el-input>
+    </el-card>
     <div class="rules" style="margin-top: 20px">
       <el-row v-for="(item, index) in list" :key="index">
         <el-card class="box-card">
@@ -84,19 +88,44 @@
           </div>        
         </el-card>
       </el-row>
-      <el-row>
-        <el-card class="box-card">
-          <div slot="header" class="clearfix">
-            <span>命中规则</span>
+      <el-card class="box-card">
+        <div slot="header" class="clearfix">
+          <span>命中规则</span>
+        </div>
+        <div style="margin-bottom:50px;">
+          <template>
+            <el-radio v-model="hitRadio" label="or">满足任意规则</el-radio>
+            <el-radio v-model="hitRadio" label="and">满足所有规则</el-radio>  
+            <el-radio v-model="hitRadio" label="">使用表达式</el-radio>            
+          </template>
+        </div>
+      </el-card>
+      <el-card class="box-card">
+        <div slot="header" class="clearfix">
+          <span>表达式</span>
+          <el-button style="right: 40px; position: absolute;" type="primary" size="small" @click="addRootExpression()">新增根表达式</el-button>
+        </div>
+        <div class="block">
+          <el-tree
+            :data="flow"
+            default-expand-all
+            :expand-on-click-node="false"
+            :render-content="renderContent">
+          </el-tree>
+        </div>
+        <el-dialog :visible.sync="flowFormVisible">
+          <el-select v-model="flowSelect" placeholder="请选择操作符">
+            <el-option v-for="item in operations" :key="item.op" :label="item.op" :value="item.op"></el-option>
+          </el-select>或
+          <el-select v-model="flowRuleSelect" placeholder="请选择规则">
+            <el-option v-for="item in list" :key="item.id" :label="item.name" :value="item.name"></el-option>
+          </el-select>
+          <div slot="footer" class="dialog-footer">
+            <el-button @click="flowFormVisible = false">取消</el-button>
+            <el-button type="primary" @click="saveExpression()">保存</el-button>
           </div>
-          <div style="margin-bottom:50px;">
-            <template>
-              <el-radio v-model="hitRadio" label="or">满足任意规则</el-radio>
-              <el-radio v-model="hitRadio" label="and">满足所有规则</el-radio>            
-            </template>
-          </div>
-        </el-card>
-      </el-row>
+        </el-dialog>
+      </el-card>
     </div>
   </div>
 </template>
@@ -108,6 +137,7 @@ import { updateRule } from '@/api/rule'
 import { activateRule } from '@/api/rule'
 import { clone } from '@/utils/util'
 const constant = require('@/utils/constant')
+let nid = 100
 
 export default {
   name: 'dashboard',
@@ -130,9 +160,18 @@ export default {
       curRule: {},
       curRuleLeftType: '',
       boolList: ['是', '否'],
-      hitRadio: 'or',
+      hitRadio: '',
       listLoading: true,
-      rule: {}
+      rule: {},
+      operations: [
+        { op: 'and' },
+        { op: 'or' }
+      ],
+      flowSelect: '',
+      flowRuleSelect: '',
+      flow: [],
+      flowFormVisible: false,
+      currentNode: {}
     }
   },
   created() {
@@ -158,7 +197,8 @@ export default {
         getDrl(this.$route.query.id).then(response => {
           this.rule = response.data
           var input = JSON.parse(response.data.input)
-          this.hitRadio = input.hit
+          this.hitRadio = input.expression.coarse
+          this.flow = input.expression.fine
           this.list = input.rules
           this.list.forEach(function(element) {
             element.name = element.name.replace(/^"(.*)"$/, '$1')
@@ -190,7 +230,8 @@ export default {
       var listCopy = clone(this.list)
       var result = {
         ver: constant.ruleVersion,
-        rules: listCopy
+        rules: listCopy,
+        expression: {}
       }
       var valid = true
       var variables = []
@@ -245,9 +286,10 @@ export default {
         return
       }
       result.variables = variables
-      result.hit = this.hitRadio
+      result.expression.coarse = this.hitRadio
+      result.expression.fine = this.flow
       if (this.rule && this.rule.id) {
-        updateRule({ input: JSON.stringify(result), id: this.rule.id }).then(response => {
+        updateRule({ input: JSON.stringify(result), id: this.rule.id, name: this.rule.name }).then(response => {
           this.$message('保存成功')
           this.fetchData()
         })
@@ -309,6 +351,62 @@ export default {
         this.$message('启用成功')
         this.fetchData()
       })
+    },
+    renderContent(h, { node, data, store }) {
+      return (
+        <span class='custom-tree-node'>
+          <span>{node.label}</span>
+          <span>
+            <el-button size='mini' type='text' on-click={ () => this.appendExpression(data) }>增加子表达式</el-button>
+            <el-button size='mini' type='text' on-click={ () => this.removeExpression(node, data) }>删除子表达式</el-button>
+          </span>
+        </span>)
+    },
+    addRootExpression() {
+      this.flowSelect = ''
+      this.flowFormVisible = true
+      this.currentNode = this.flow
+    },
+    saveExpression() {
+      var select = ''
+      if (this.flowSelect !== '') {
+        select = this.flowSelect
+      } else if (this.flowRuleSelect !== '') {
+        select = this.flowRuleSelect
+      }
+      if (select === '') {
+        this.flowFormVisible = false
+        return
+      }
+      if (this.currentNode === this.flow) {
+        // root
+        const oldChild = clone(this.flow)
+        const newChild = { id: nid++, label: select, children: oldChild }
+        this.flow = []
+        this.flow.push(newChild)
+      } else {
+        const newChild = { id: nid++, label: select, children: [] }
+        this.currentNode.children.push(newChild)
+      }
+      this.flowFormVisible = false
+    },
+    appendExpression(data) {
+      this.currentNode = data
+      this.flowSelect = ''
+      this.flowRuleSelect = ''
+      this.flowFormVisible = true
+    },
+    removeExpression(node, data) {
+      console.log(node)
+      const parent = node.parent
+      if (!(parent.data instanceof Array)) {
+        const index = parent.data.indexOf(data)
+        parent.data.splice(index, 1)
+      } else {
+        const children = parent.data
+        const index = children.indexOf(data)
+        children.splice(index, 1)
+      }
     }
   }
 }
@@ -327,5 +425,16 @@ export default {
 .enable_rule_button {
   right: 30px;
   position: absolute;
+}
+</style>
+
+<style>
+.custom-tree-node {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 14px;
+  padding-right: 8px;
 }
 </style>

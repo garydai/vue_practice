@@ -6,7 +6,12 @@
       </div>
       <el-table :data="list" border fit highlight-current-row style="width: 100%">
         <el-table-column prop="id" label="编号"></el-table-column>
-        <el-table-column prop="createdTime" label="更新时间"></el-table-column>
+        <el-table-column prop="name" label="规则集名"></el-table-column>
+        <el-table-column label="更新时间">
+           <template slot-scope="scope">
+            <span>{{scope.row.createdTime / 1000 | moment("YYYY-MM-DD ss:mm") }}</span>
+          </template>
+        </el-table-column>
         <el-table-column label="是否启用">
           <template slot-scope="scope">
             <span v-if="scope.row.enabled">已启用</span>
@@ -39,13 +44,13 @@
         <el-form :model="form" ref="ruleForm" label-width="150px" class="demo-ruleForm">
           <el-form-item label="如果命中该drl，则运行" prop="variable">
             <el-select v-model="form.hit" placeholder="请选择规则集">
-              <el-option v-for="t in filterList(list)" :key="t.id" :label="t.id" :value="t.id">
+              <el-option v-for="t in filterList(list)" :key="t.id" :label="t.name" :value="t.name">
               </el-option>
             </el-select>
           </el-form-item>
           <el-form-item label="否则，运行" prop="variable">
-            <el-select v-model="form.nothit" placeholder="请选择变量集">
-              <el-option v-for="t in filterList(list)" :key="t.id" :label="t.id" :value="t.id">
+            <el-select v-model="form.nothit" placeholder="请选择规则集">
+              <el-option v-for="t in filterList(list)" :key="t.id" :label="t.name" :value="t.name">
               </el-option>
             </el-select>
           </el-form-item>
@@ -59,7 +64,7 @@
         <el-form :model="flow" ref="ruleForm" label-width="100px" class="demo-ruleForm">
           <el-form-item label="新流程" prop="variable">
             <el-select v-model="flow.id" placeholder="请选择规则集">
-              <el-option v-for="t in filterList(list)" :key="t.id" :label="t.id" :value="t.id">
+              <el-option v-for="t in filterList(list)" :key="t.id" :label="t.name" :value="t.id">
               </el-option>
             </el-select>
           </el-form-item>
@@ -78,7 +83,6 @@ import { getList } from '@/api/rule'
 import { insertFlow } from '@/api/rule'
 // import { clone } from '@/utils/util'
 import { getFlow } from '@/api/rule'
-
 let nid = 100
 export default {
   name: 'dashboard',
@@ -95,7 +99,8 @@ export default {
       flow: {
         id: -1
       },
-      currentNode: {}
+      currentNode: {},
+      nodeMap: {}
     }
   },
   created() {
@@ -121,11 +126,16 @@ export default {
     fetchData() {
       getList().then(response => {
         this.list = response.data
+        this.nodeMap = {}
+        this.list.forEach(function(element) {
+          this.nodeMap[element.id] = element.name
+        }, this)
+
         getFlow().then(flowResp => {
-          if (Object.keys(flowResp.data).length === 0) {
+          if (flowResp.data.workflow.length === 0) {
             this.list.forEach(function(element) {
               if (element.enabled) {
-                this.data.push({ id: nid++, label: element.id, children: [] })
+                this.data.push({ id: nid++, label: element.id, children: [], name: '' })
               }
             }, this)
           } else {
@@ -140,7 +150,7 @@ export default {
     renderContent(h, { node, data, store }) {
       return (
         <span class='custom-tree-node'>
-          <span>{node.label}</span>
+          <span>{data.name}</span>
           <span>
             <el-button size='mini' type='text' on-click={ () => this.append(data) }>增加子流程</el-button>
             <el-button size='mini' type='text' on-click={ () => this.remove(node, data) }>删除该流程</el-button>
@@ -153,8 +163,8 @@ export default {
       })
     },
     addChild() {
-      const hitChild = { id: nid++, label: this.form.hit, children: [] }
-      const nothitChild = { id: nid++, label: this.form.nothit, children: [] }
+      const hitChild = { id: nid++, label: this.form.hit, children: [], name: this.nodeMap[this.form.hit] }
+      const nothitChild = { id: nid++, label: this.form.nothit, children: [], name: this.nodeMap[this.form.nothit] }
       this.$set(this.currentNode, 'children', [])
       this.currentNode.children.push(hitChild)
       this.currentNode.children.push(nothitChild)
@@ -173,7 +183,7 @@ export default {
       this.flowVisible = true
     },
     addFlowSave() {
-      const child = { id: nid++, label: this.flow.id, children: [] }
+      const child = { id: nid++, label: this.flow.id, children: [], name: this.nodeMap[this.flow.id] }
       this.data.push(child)
       this.flowVisible = false
     }
