@@ -12,16 +12,11 @@
             <span>{{scope.row.createdTime / 1000 | moment("YYYY-MM-DD ss:mm") }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="是否启用">
-          <template slot-scope="scope">
-            <span v-if="scope.row.enabled">已启用</span>
-            <span v-else>未启用</span>
-          </template>
-        </el-table-column>
         <el-table-column label="操作">
           <template slot-scope="scope">
-            <el-button type="primary" @click="modify(scope.row)" size="small" icon="el-icon-edit">修改</el-button>
-            <el-button type="danger" @click="remove(scope.row)" size="small" icon="el-icon-edit">删除</el-button>
+            <el-button v-if="scope.row.enabled" type="danger" @click="disableDrl(scope.row)" size="mini" icon="el-icon-edit">关闭</el-button>
+            <el-button v-else type="primary" @click="enableDrl(scope.row)" size="mini" icon="el-icon-edit">启用</el-button>
+            <el-button type="primary" @click="modify(scope.row)" size="mini" icon="el-icon-edit">修改</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -37,20 +32,21 @@
           :data="data"
           default-expand-all
           :expand-on-click-node="false"
-          :render-content="renderContent">
+          :render-content="renderContent"
+          :props="defaultProps">
         </el-tree>
       </div>      
       <el-dialog :visible.sync="dialogFormVisible">
         <el-form :model="form" ref="ruleForm" label-width="150px" class="demo-ruleForm">
           <el-form-item label="如果命中该drl，则运行" prop="variable">
             <el-select v-model="form.hit" placeholder="请选择规则集">
-              <el-option v-for="t in filterList(list)" :key="t.id" :label="t.name" :value="t.name">
+              <el-option v-for="t in filterList(list)" :key="t.id" :label="t.name" :value="t.id">
               </el-option>
             </el-select>
           </el-form-item>
           <el-form-item label="否则，运行" prop="variable">
             <el-select v-model="form.nothit" placeholder="请选择规则集">
-              <el-option v-for="t in filterList(list)" :key="t.id" :label="t.name" :value="t.name">
+              <el-option v-for="t in filterList(list)" :key="t.id" :label="t.name" :value="t.id">
               </el-option>
             </el-select>
           </el-form-item>
@@ -80,7 +76,7 @@
 
 <script>
 import { getList } from '@/api/rule'
-import { insertFlow } from '@/api/rule'
+import { insertFlow, activateRule } from '@/api/rule'
 // import { clone } from '@/utils/util'
 import { getFlow } from '@/api/rule'
 let nid = 100
@@ -93,14 +89,17 @@ export default {
       dialogFormVisible: false,
       flowVisible: false,
       form: {
-        hit: -1,
-        nothit: -1
+        hit: '',
+        nothit: ''
       },
       flow: {
-        id: -1
+        id: ''
       },
       currentNode: {},
-      nodeMap: {}
+      nodeMap: {
+      },
+      defaultProps: {
+      }
     }
   },
   created() {
@@ -109,7 +108,7 @@ export default {
   methods: {
     append(data) {
       this.currentNode = data
-      this.form = { hit: -1, nothit: -1 }
+      this.form = { hit: '', nothit: '' }
       this.dialogFormVisible = true
     },
     remove(node, data) {
@@ -126,21 +125,16 @@ export default {
     fetchData() {
       getList().then(response => {
         this.list = response.data
-        this.nodeMap = {}
+        this.nodeMap = {
+          '': '空'
+        }
         this.list.forEach(function(element) {
           this.nodeMap[element.id] = element.name
         }, this)
 
         getFlow().then(flowResp => {
-          if (flowResp.data.workflow.length === 0) {
-            this.list.forEach(function(element) {
-              if (element.enabled) {
-                this.data.push({ id: nid++, label: element.id, children: [], name: '' })
-              }
-            }, this)
-          } else {
-            this.data = JSON.parse(flowResp.data.workflow)
-          }
+          this.data = JSON.parse(flowResp.data.workflow)
+          this.defaultProps['nodeMap'] = this.nodeMap
         })
       })
     },
@@ -150,7 +144,7 @@ export default {
     renderContent(h, { node, data, store }) {
       return (
         <span class='custom-tree-node'>
-          <span>{data.name}</span>
+          <span>{store.props.nodeMap[data.label]}</span>
           <span>
             <el-button size='mini' type='text' on-click={ () => this.append(data) }>增加子流程</el-button>
             <el-button size='mini' type='text' on-click={ () => this.remove(node, data) }>删除该流程</el-button>
@@ -163,8 +157,8 @@ export default {
       })
     },
     addChild() {
-      const hitChild = { id: nid++, label: this.form.hit, children: [], name: this.nodeMap[this.form.hit] }
-      const nothitChild = { id: nid++, label: this.form.nothit, children: [], name: this.nodeMap[this.form.nothit] }
+      const hitChild = { id: nid++, label: this.form.hit, children: [] }
+      const nothitChild = { id: nid++, label: this.form.nothit, children: [] }
       this.$set(this.currentNode, 'children', [])
       this.currentNode.children.push(hitChild)
       this.currentNode.children.push(nothitChild)
@@ -183,9 +177,27 @@ export default {
       this.flowVisible = true
     },
     addFlowSave() {
-      const child = { id: nid++, label: this.flow.id, children: [], name: this.nodeMap[this.flow.id] }
+      const child = { id: nid++, label: this.flow.id, children: [] }
       this.data.push(child)
       this.flowVisible = false
+    },
+    enableDrl(data) {
+      if (data.enabled) {
+        this.$message('规则已启用')
+      }
+      activateRule({ id: data.id, enabled: 1 }).then(response => {
+        this.$message('启用成功')
+        this.fetchData()
+      })
+    },
+    disableDrl(data) {
+      if (!data.enabled) {
+        this.$message('规则已关闭')
+      }
+      activateRule({ id: data.id, enabled: 0 }).then(response => {
+        this.$message('启用成功')
+        this.fetchData()
+      })
     }
   }
 }

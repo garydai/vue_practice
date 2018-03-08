@@ -75,6 +75,7 @@ export default {
           p[this.mapper[element.key]] = element.value
         }
       }, this)
+      this.result = ''
       executeRule(p).then(response => {
         this.result = response.data
       })

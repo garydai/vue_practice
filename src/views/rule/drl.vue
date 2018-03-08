@@ -2,10 +2,6 @@
   <div class="dashboard-container">
     <el-button type="primary" size="small" @click="handleAddRule()">增加规则</el-button>
     <el-button type="primary" size="small" @click="handleUpdateRule()">提交修改</el-button>
-    <el-button class="enable_rule_button" type="danger " size="small" @click="handleEnableRule()" :disabled="rule.enabled">
-      <div v-if="rule.enabled">已启用规则</div>
-      <div v-else>启用规则</div>
-    </el-button>
     <el-card class="box-card">
       <span>checkoutpoint</span>
       <el-input style="width: 150px;" class="filter-item" v-model="rule.name"></el-input>
@@ -134,7 +130,6 @@
 import { getDrl } from '@/api/rule'
 import { getVariables } from '@/api/rule'
 import { updateRule } from '@/api/rule'
-import { activateRule } from '@/api/rule'
 import { clone } from '@/utils/util'
 const constant = require('@/utils/constant')
 let nid = 100
@@ -342,15 +337,6 @@ export default {
         this.curRule.r_t = 'v' // 变量
       }
       this.dialogFormVisible = false
-    },
-    handleEnableRule() {
-      if (this.rule.enabled) {
-        this.$message('规则已启用')
-      }
-      activateRule({ id: this.rule.id }).then(response => {
-        this.$message('启用成功')
-        this.fetchData()
-      })
     },
     renderContent(h, { node, data, store }) {
       return (
