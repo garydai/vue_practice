@@ -4,7 +4,7 @@
       <div slot="header" class="clearfix">
         <span>输入</span>
       </div>
-      <el-button size="mini" type="primary" @click="handleAddCondition()">增加条件    
+      <el-button size="mini" type="primary" @click="handleAddCondition()">添加条件    
       </el-button>
       <div style="margin-bottom:50px;">
         <el-table :data="inputs" style="width: 100%">
@@ -22,6 +22,17 @@
               </el-input>
             </template>
           </el-table-column>
+          <el-table-column
+            width="180">
+            <template slot-scope="scope">
+              <el-button
+                @click.native.prevent="deleteRow(scope.$index)"
+                type="text"
+                size="small">
+                移除
+              </el-button>
+            </template>
+          </el-table-column>
         </el-table>
         <div style="margin-top: 30px">
           <el-button size="mini" type="primary" @click="onSubmit">发送</el-button>
@@ -34,7 +45,7 @@
       </div>
       <div style="margin-bottom:50px;">
         <template>
-          <span>{{result}}</span>
+          <pre>{{result}}</pre>
         </template>
       </div>
     </el-card>
@@ -57,8 +68,13 @@ export default {
   created() {
     this.mapper = constant.m
     this.fetchData()
+    var inputString = localStorage.getItem('testInput')
+    this.inputs = JSON.parse(inputString)
   },
   methods: {
+    deleteRow(index) {
+      this.inputs.splice(index, 1)
+    },
     fetchData() {
       getVariables().then(response => {
         this.variables = response.data
@@ -69,6 +85,7 @@ export default {
       })
     },
     onSubmit() {
+      localStorage.setItem('testInput', JSON.stringify(this.inputs))
       var p = {}
       this.inputs.forEach(function(element) {
         if (element.key !== '' && element.value !== '') {
@@ -76,8 +93,11 @@ export default {
         }
       }, this)
       this.result = ''
+      if (Object.keys(p).length === 0) {
+        this.$message('请添加条件')
+      }
       executeRule(p).then(response => {
-        this.result = response.data
+        this.result = JSON.stringify(response.data, null, 2)
       })
     },
     handleAddCondition() {

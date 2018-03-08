@@ -3,10 +3,16 @@
     <el-card class="box-card">
       <div slot="header" class="clearfix">
         <span>checkpoints</span>
+        <el-button style="right: 40px; position: absolute;" type="primary" size="small" @click="addCheckpoint()">新增checkpoint</el-button>
       </div>
       <el-table :data="list" border fit highlight-current-row style="width: 100%">
         <el-table-column prop="id" label="编号"></el-table-column>
         <el-table-column prop="name" label="规则集名"></el-table-column>
+        <el-table-column label="命中策略">
+          <template slot-scope="scope">
+            <span>{{actionArr[scope.row.action]}}</span>
+          </template>
+        </el-table-column>
         <el-table-column label="更新时间">
            <template slot-scope="scope">
             <span>{{scope.row.createdTime / 1000 | moment("YYYY-MM-DD ss:mm") }}</span>
@@ -37,7 +43,7 @@
         </el-tree>
       </div>      
       <el-dialog :visible.sync="dialogFormVisible">
-        <el-form :model="form" ref="ruleForm" label-width="150px" class="demo-ruleForm">
+        <el-form :model="form" ref="ruleForm" label-width="180px" class="demo-ruleForm">
           <el-form-item label="如果命中该drl，则运行" prop="variable">
             <el-select v-model="form.hit" placeholder="请选择规则集">
               <el-option v-for="t in filterList(list)" :key="t.id" :label="t.name" :value="t.id">
@@ -75,8 +81,7 @@
 </template>
 
 <script>
-import { getList } from '@/api/rule'
-import { insertFlow, activateRule } from '@/api/rule'
+import { insertFlow, activateRule, getList } from '@/api/rule'
 // import { clone } from '@/utils/util'
 import { getFlow } from '@/api/rule'
 let nid = 100
@@ -99,7 +104,12 @@ export default {
       nodeMap: {
       },
       defaultProps: {
-      }
+      },
+      actionArr: [
+        '通过',
+        '拒绝',
+        '待审'
+      ]
     }
   },
   created() {
@@ -107,6 +117,10 @@ export default {
   },
   methods: {
     append(data) {
+      if (data.label === '') {
+        this.$message('不能继续添加流程')
+        return
+      }
       this.currentNode = data
       this.form = { hit: '', nothit: '' }
       this.dialogFormVisible = true
@@ -195,9 +209,12 @@ export default {
         this.$message('规则已关闭')
       }
       activateRule({ id: data.id, enabled: 0 }).then(response => {
-        this.$message('启用成功')
+        this.$message('关闭成功')
         this.fetchData()
       })
+    },
+    addCheckpoint() {
+      this.$router.push('/engine/drl')
     }
   }
 }

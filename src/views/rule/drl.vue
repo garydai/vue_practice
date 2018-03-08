@@ -5,6 +5,10 @@
     <el-card class="box-card">
       <span>checkoutpoint</span>
       <el-input style="width: 150px;" class="filter-item" v-model="rule.name"></el-input>
+      <span>命中策略</span>
+      <el-select v-model="actionSelect" placeholder="请选择">
+        <el-option v-for="key in Object.keys(actionMap)" :key="key" :label="key" :value="key"></el-option>
+      </el-select>
     </el-card>
     <div class="rules" style="margin-top: 20px">
       <el-row v-for="(item, index) in list" :key="index">
@@ -127,9 +131,7 @@
 </template>
 
 <script>
-import { getDrl } from '@/api/rule'
-import { getVariables } from '@/api/rule'
-import { updateRule } from '@/api/rule'
+import { getDrl, addRule, getVariables, updateRule } from '@/api/rule'
 import { clone } from '@/utils/util'
 const constant = require('@/utils/constant')
 let nid = 100
@@ -166,7 +168,18 @@ export default {
       flowRuleSelect: '',
       flow: [],
       flowFormVisible: false,
-      currentNode: {}
+      currentNode: {},
+      actionSelect: '',
+      actionArr: [
+        '通过',
+        '拒绝',
+        '待审'
+      ],
+      actionMap: {
+        '通过': 0,
+        '拒绝': 1,
+        '待审': 2
+      }
     }
   },
   created() {
@@ -189,12 +202,18 @@ export default {
           this.mapper[this.variables[key].displayName] = key
           this.mapper[key] = this.variables[key].displayName
         }
+        if (Object.keys(this.$route.query).indexOf('id') === -1) {
+          return
+        }
         getDrl(this.$route.query.id).then(response => {
           this.rule = response.data
           var input = JSON.parse(response.data.input)
           this.hitRadio = input.expression.coarse
           this.flow = input.expression.fine
           this.list = input.rules
+          this.actionSelect = this.actionArr[this.rule.action]
+          console.log(this.rule)
+          console.log(this.actionSelect)
           this.list.forEach(function(element) {
             element.name = element.name.replace(/^"(.*)"$/, '$1')
             element.rule.forEach(function(ele) {
@@ -222,6 +241,10 @@ export default {
     },
     handleUpdateRule() {
       // todo 增量修改
+      if (!this.actionSelect) {
+        this.$message('请填写完整')
+        return
+      }
       var listCopy = clone(this.list)
       var result = {
         ver: constant.ruleVersion,
@@ -283,10 +306,15 @@ export default {
       result.variables = variables
       result.expression.coarse = this.hitRadio
       result.expression.fine = this.flow
+      console.log(this.actionSelect)
       if (this.rule && this.rule.id) {
-        updateRule({ input: JSON.stringify(result), id: this.rule.id, name: this.rule.name }).then(response => {
+        updateRule({ input: JSON.stringify(result), id: this.rule.id, name: this.rule.name, action: this.actionMap[this.actionSelect] }).then(response => {
           this.$message('保存成功')
           this.fetchData()
+        })
+      } else {
+        addRule({ input: JSON.stringify(result), name: this.rule.name, action: this.actionMap[this.actionSelect] }).then(response => {
+          this.$router.push('/engine/rule')
         })
       }
     },
@@ -344,12 +372,13 @@ export default {
           <span>{node.label}</span>
           <span>
             <el-button size='mini' type='text' on-click={ () => this.appendExpression(data) }>增加子表达式</el-button>
-            <el-button size='mini' type='text' on-click={ () => this.removeExpression(node, data) }>删除子表达式</el-button>
+            <el-button size='mini' type='text' on-click={ () => this.removeExpression(node, data) }>删除该表达式</el-button>
           </span>
         </span>)
     },
     addRootExpression() {
       this.flowSelect = ''
+      this.flowRuleSelect = ''
       this.flowFormVisible = true
       this.currentNode = this.flow
     },
@@ -377,18 +406,22 @@ export default {
       this.flowFormVisible = false
     },
     appendExpression(data) {
+      if (data.label !== 'or' && data.label !== 'and') {
+        this.$message('不能添加')
+        return
+      }
       this.currentNode = data
       this.flowSelect = ''
       this.flowRuleSelect = ''
       this.flowFormVisible = true
     },
     removeExpression(node, data) {
-      console.log(node)
       const parent = node.parent
       if (!(parent.data instanceof Array)) {
-        const index = parent.data.indexOf(data)
-        parent.data.splice(index, 1)
+        const index = parent.data.children.indexOf(data)
+        parent.data.children.splice(index, 1)
       } else {
+        // root
         const children = parent.data
         const index = children.indexOf(data)
         children.splice(index, 1)
