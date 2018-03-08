@@ -60,7 +60,7 @@ const constant = require('@/utils/constant')
 export default {
   data() {
     return {
-      variables: '',
+      variables: {},
       inputs: [],
       result: ''
     }
@@ -77,10 +77,14 @@ export default {
     },
     fetchData() {
       getVariables().then(response => {
-        this.variables = response.data
-        for (var key in this.variables) {
-          this.mapper[this.variables[key].displayName] = key
-          this.mapper[key] = this.variables[key].displayName
+        for (var key in response.data) {
+          if (Object.keys(response.data[key]).indexOf('serviceName') === -1) {
+            this.variables[key] = response.data[key]
+          }
+        }
+        for (var key2 in this.variables) {
+          this.mapper[this.variables[key2].displayName] = key2
+          this.mapper[key2] = this.variables[key2].displayName
         }
       })
     },

@@ -212,8 +212,6 @@ export default {
           this.flow = input.expression.fine
           this.list = input.rules
           this.actionSelect = this.actionArr[this.rule.action]
-          console.log(this.rule)
-          console.log(this.actionSelect)
           this.list.forEach(function(element) {
             element.name = element.name.replace(/^"(.*)"$/, '$1')
             element.rule.forEach(function(ele) {
@@ -306,7 +304,6 @@ export default {
       result.variables = variables
       result.expression.coarse = this.hitRadio
       result.expression.fine = this.flow
-      console.log(this.actionSelect)
       if (this.rule && this.rule.id) {
         updateRule({ input: JSON.stringify(result), id: this.rule.id, name: this.rule.name, action: this.actionMap[this.actionSelect] }).then(response => {
           this.$message('保存成功')
