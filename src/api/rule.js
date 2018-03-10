@@ -14,6 +14,13 @@ export function getVariables() {
   })
 }
 
+export function getActions() {
+  return request({
+    url: '/actions',
+    method: 'get'
+  })
+}
+
 // todo refine
 export function updateRule(data) {
   return request.formPost('/update', data)

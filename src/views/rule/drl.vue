@@ -7,7 +7,7 @@
       <el-input style="width: 150px;" class="filter-item" v-model="rule.name"></el-input>
       <span>命中策略</span>
       <el-select v-model="actionSelect" placeholder="请选择">
-        <el-option v-for="key in Object.keys(actionMap)" :key="key" :label="key" :value="key"></el-option>
+        <el-option v-for="key in Object.keys(actionMap)" :key="key" :label="actionMap[key]" :value="actionMap[key]"></el-option>
       </el-select>
     </el-card>
     <div class="rules" style="margin-top: 20px">
@@ -109,7 +109,6 @@
           <el-tree
             :data="flow"
             default-expand-all
-            :expand-on-click-node="false"
             :render-content="renderContent">
           </el-tree>
         </div>
@@ -131,7 +130,7 @@
 </template>
 
 <script>
-import { getDrl, addRule, getVariables, updateRule } from '@/api/rule'
+import { getDrl, addRule, getVariables, updateRule, getActions } from '@/api/rule'
 import { clone } from '@/utils/util'
 const constant = require('@/utils/constant')
 let nid = 100
@@ -170,16 +169,8 @@ export default {
       flowFormVisible: false,
       currentNode: {},
       actionSelect: '',
-      actionArr: [
-        '通过',
-        '拒绝',
-        '待审'
-      ],
-      actionMap: {
-        '通过': 0,
-        '拒绝': 1,
-        '待审': 2
-      }
+      actionMap: {},
+      actionConstant: {}
     }
   },
   created() {
@@ -205,13 +196,20 @@ export default {
         if (Object.keys(this.$route.query).indexOf('id') === -1) {
           return
         }
+        getActions().then(response => {
+          this.actionMap = response.data
+          this.actionConstant = clone(response.data)
+          for (var key in this.actionMap) {
+            this.actionConstant[this.actionConstant[key]] = key
+          }
+        })
         getDrl(this.$route.query.id).then(response => {
           this.rule = response.data
           var input = JSON.parse(response.data.input)
           this.hitRadio = input.expression.coarse
           this.flow = input.expression.fine
           this.list = input.rules
-          this.actionSelect = this.actionArr[this.rule.action]
+          this.actionSelect = this.actionMap[this.rule.action]
           this.list.forEach(function(element) {
             element.name = element.name.replace(/^"(.*)"$/, '$1')
             element.rule.forEach(function(ele) {
@@ -305,12 +303,12 @@ export default {
       result.expression.coarse = this.hitRadio
       result.expression.fine = this.flow
       if (this.rule && this.rule.id) {
-        updateRule({ input: JSON.stringify(result), id: this.rule.id, name: this.rule.name, action: this.actionMap[this.actionSelect] }).then(response => {
+        updateRule({ input: JSON.stringify(result), id: this.rule.id, name: this.rule.name, action: this.actionConstant[this.actionSelect] }).then(response => {
           this.$message('保存成功')
           this.fetchData()
         })
       } else {
-        addRule({ input: JSON.stringify(result), name: this.rule.name, action: this.actionMap[this.actionSelect] }).then(response => {
+        addRule({ input: JSON.stringify(result), name: this.rule.name, action: this.actionConstant[this.actionSelect] }).then(response => {
           this.$router.push('/engine/rule')
         })
       }
@@ -336,8 +334,7 @@ export default {
     handleAddRule(listIdx) {
       var rule = {
         'name': '',
-        'rule': [],
-        'action': 'warn'
+        'rule': []
       }
       this.list.push(rule)
     },

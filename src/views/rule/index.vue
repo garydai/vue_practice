@@ -10,7 +10,7 @@
         <el-table-column prop="name" label="规则集名"></el-table-column>
         <el-table-column label="命中策略">
           <template slot-scope="scope">
-            <span>{{actionArr[scope.row.action]}}</span>
+            <span>{{actionMap[scope.row.action]}}</span>
           </template>
         </el-table-column>
         <el-table-column label="更新时间">
@@ -29,7 +29,7 @@
     </el-card>
     <el-card class="box-card">
       <div slot="header" class="clearfix">
-        <span>workflow</span>
+        <span>workflow + decision</span>
          <el-button style="right: 100px; position: absolute;" type="primary" size="small" @click="addFlow()">新增流程</el-button>
         <el-button style="right: 40px; position: absolute;" type="primary" size="small" @click="saveFlow()">保存</el-button>
       </div>
@@ -37,7 +37,6 @@
         <el-tree
           :data="data"
           default-expand-all
-          :expand-on-click-node="false"
           :render-content="renderContent"
           :props="defaultProps">
         </el-tree>
@@ -46,15 +45,21 @@
         <el-form :model="form" ref="ruleForm" label-width="180px" class="demo-ruleForm">
           <el-form-item label="如果命中该drl，则运行" prop="variable">
             <el-select v-model="form.hit" placeholder="请选择规则集">
-              <el-option v-for="t in filterList(list)" :key="t.id" :label="t.name" :value="t.id">
-              </el-option>
+              <el-option v-for="t in filterList(list)" :key="t.id" :label="t.name" :value="t.id"></el-option>
+            </el-select>
+            或
+            <el-select v-model="form.hitAction" placeholder="请选择策略">
+              <el-option v-for="t in Object.keys(actionMap)" :key="t" :label="actionMap[t]" :value="t"></el-option>
             </el-select>
           </el-form-item>
           <el-form-item label="否则，运行" prop="variable">
             <el-select v-model="form.nothit" placeholder="请选择规则集">
-              <el-option v-for="t in filterList(list)" :key="t.id" :label="t.name" :value="t.id">
-              </el-option>
+              <el-option v-for="t in filterList(list)" :key="t.id" :label="t.name" :value="t.id"></el-option>
             </el-select>
+            或
+            <el-select v-model="form.nothitAction" placeholder="请选择策略">
+              <el-option v-for="t in Object.keys(actionMap)" :key="t" :label="actionMap[t]" :value="t"></el-option>
+            </el-select> 
           </el-form-item>
         </el-form>
         <div slot="footer" class="dialog-footer">
@@ -81,8 +86,7 @@
 </template>
 
 <script>
-import { insertFlow, activateRule, getList } from '@/api/rule'
-// import { clone } from '@/utils/util'
+import { insertFlow, activateRule, getList, getActions } from '@/api/rule'
 import { getFlow } from '@/api/rule'
 let nid = 100
 export default {
@@ -93,23 +97,18 @@ export default {
       data: [],
       dialogFormVisible: false,
       flowVisible: false,
-      form: {
-        hit: '',
-        nothit: ''
-      },
+      form: {},
       flow: {
         id: ''
       },
       currentNode: {},
       nodeMap: {
+        'rule': {},
+        'action': {}
       },
       defaultProps: {
       },
-      actionArr: [
-        '通过',
-        '拒绝',
-        '待审'
-      ]
+      actionMap: {}
     }
   },
   created() {
@@ -117,12 +116,12 @@ export default {
   },
   methods: {
     append(data) {
-      if (data.label === '') {
+      if (data.label === '' || data.type === 'action') {
         this.$message('不能继续添加流程')
         return
       }
       this.currentNode = data
-      this.form = { hit: '', nothit: '' }
+      this.form = { hit: '', nothit: '', hitAction: '', nothitAction: '' }
       this.dialogFormVisible = true
     },
     remove(node, data) {
@@ -139,17 +138,19 @@ export default {
     fetchData() {
       getList().then(response => {
         this.list = response.data
-        this.nodeMap = {
-          '': '空'
-        }
         this.list.forEach(function(element) {
-          this.nodeMap[element.id] = element.name
+          this.nodeMap['rule'][element.id + ''] = element.name
         }, this)
-
-        getFlow().then(flowResp => {
-          this.data = JSON.parse(flowResp.data.workflow)
-          this.defaultProps['nodeMap'] = this.nodeMap
+        getActions().then(response => {
+          this.actionMap = response.data
+          this.nodeMap['action'] = this.actionMap
         })
+        getFlow().then(flowResp => {
+          if (Object.keys(flowResp.data).indexOf('workflow') !== -1) {
+            this.data = JSON.parse(flowResp.data.workflow)
+          }
+        })
+        this.defaultProps['nodeMap'] = this.nodeMap
       })
     },
     modify(row) {
@@ -158,7 +159,7 @@ export default {
     renderContent(h, { node, data, store }) {
       return (
         <span class='custom-tree-node'>
-          <span>{store.props.nodeMap[data.label]}</span>
+          <span>{store.props.nodeMap[data.type][data.label]}</span>
           <span>
             <el-button size='mini' type='text' on-click={ () => this.append(data) }>增加子流程</el-button>
             <el-button size='mini' type='text' on-click={ () => this.remove(node, data) }>删除该流程</el-button>
@@ -171,8 +172,26 @@ export default {
       })
     },
     addChild() {
-      const hitChild = { id: nid++, label: this.form.hit, children: [] }
-      const nothitChild = { id: nid++, label: this.form.nothit, children: [] }
+      var h = ''
+      var t = ''
+      var nh = ''
+      var nt = ''
+      if (this.form.hit !== '') {
+        h = this.form.hit
+        t = 'rule'
+      } else if (this.form.hitAction !== '') {
+        h = this.form.hitAction
+        t = 'action'
+      }
+      if (this.form.nothit !== '') {
+        nh = this.form.nothit
+        nt = 'rule'
+      } else if (this.form.nothitAction !== '') {
+        nh = this.form.nothitAction
+        nt = 'action'
+      }
+      const hitChild = { id: nid++, label: h, type: t, children: [] }
+      const nothitChild = { id: nid++, label: nh, type: nt, children: [] }
       this.$set(this.currentNode, 'children', [])
       this.currentNode.children.push(hitChild)
       this.currentNode.children.push(nothitChild)
@@ -191,7 +210,7 @@ export default {
       this.flowVisible = true
     },
     addFlowSave() {
-      const child = { id: nid++, label: this.flow.id, children: [] }
+      const child = { id: nid++, label: this.flow.id, children: [], type: 'rule' }
       this.data.push(child)
       this.flowVisible = false
     },

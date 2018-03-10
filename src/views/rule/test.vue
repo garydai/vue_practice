@@ -69,7 +69,9 @@ export default {
     this.mapper = constant.m
     this.fetchData()
     var inputString = localStorage.getItem('testInput')
-    this.inputs = JSON.parse(inputString)
+    if (inputString) {
+      this.inputs = JSON.parse(inputString)
+    }
   },
   methods: {
     deleteRow(index) {
