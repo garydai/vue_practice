@@ -253,8 +253,6 @@ export default {
       listCopy.forEach(function(element) {
         if (element.name === '') {
           valid = false
-        } else {
-          element.name = '"' + element.name + '"'
         }
         var rule = element.rule
         rule.forEach(function(element, index) {
