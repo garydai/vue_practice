@@ -6,7 +6,7 @@
       <span>checkoutpoint</span>
       <el-input style="width: 150px;" class="filter-item" v-model="rule.name"></el-input>
       <span>命中策略</span>
-      <el-select v-model="actionSelect" placeholder="请选择">
+      <el-select v-model="actionSelect" placeholder="请选择" clearable>
         <el-option v-for="key in Object.keys(actionMap)" :key="key" :label="actionMap[key]" :value="actionMap[key]"></el-option>
       </el-select>
     </el-card>
@@ -28,7 +28,7 @@
               <el-table :data="item.rule" style="width: 100%">
                 <el-table-column width="180">
                   <template slot-scope="scope">
-                    <el-select v-if="scope.$index % 2 == 0" style="width: 150px" class="filter-item" v-model="scope.row.l">
+                    <el-select v-if="scope.$index % 2 == 0" style="width: 150px" class="filter-item" v-model="scope.row.l" clearable>
                       <el-option v-for="t in Object.keys(variables)" :key="t" :label="mapper[t]" :value="mapper[t]">
                       </el-option>
                     </el-select>
@@ -36,15 +36,15 @@
                 </el-table-column>
                 <el-table-column width="180">
                   <template slot-scope="scope">
-                    <el-select v-if="scope.$index % 2 == 0 && scope.row.l == ''" style="width: 150px" class="filter-item" v-model="scope.row.o">
+                    <el-select v-if="scope.$index % 2 == 0 && scope.row.l == ''" style="width: 150px" class="filter-item" v-model="scope.row.o" clearable>
                       <el-option :value="''">
                       </el-option>
                     </el-select>
-                    <el-select v-else-if="scope.$index % 2 == 0 && scope.row.l != ''" style="width: 150px" class="filter-item" v-model="scope.row.o">
+                    <el-select v-else-if="scope.$index % 2 == 0 && scope.row.l != ''" style="width: 150px" class="filter-item" v-model="scope.row.o" clearable>
                       <el-option v-for="t in op[scope.$index % 2][variables[mapper[scope.row.l]].type]" :key="t" :label="t" :value="t">
                       </el-option>
                     </el-select>
-                    <el-select v-else-if="scope.$index % 2 == 1" style="width: 150px" class="filter-item" v-model="scope.row.o">
+                    <el-select v-else-if="scope.$index % 2 == 1" style="width: 150px" class="filter-item" v-model="scope.row.o" clearable>
                       <el-option v-for="t in op[scope.$index % 2]" :key="t" :label="t" :value="t">
                       </el-option>
                     </el-select>
@@ -64,13 +64,13 @@
                           <el-input v-model="form.value" placeholder="请填写数值" :disabled="curRuleLeftType === 'Boolean'"></el-input>
                         </el-form-item>
                         <el-form-item label="是否" prop="determine">
-                          <el-select v-model="form.determine" placeholder="请选择" :disabled="curRuleLeftType !== 'Boolean'">
+                          <el-select v-model="form.determine" placeholder="请选择" :disabled="curRuleLeftType !== 'Boolean'" clearable>
                             <el-option v-for="t in boolList" :key="t" :label="t" :value="t">
                             </el-option>
                           </el-select>
                         </el-form-item>
                         <el-form-item label="变量" prop="variable">
-                          <el-select v-model="form.variable" placeholder="请选择变量">
+                          <el-select v-model="form.variable" placeholder="请选择变量" clearable>
                             <el-option v-for="t in Object.keys(variables)" :key="t" :label="mapper[t]" :value="mapper[t]">
                             </el-option>
                           </el-select>
@@ -113,11 +113,11 @@
           </el-tree>
         </div>
         <el-dialog :visible.sync="flowFormVisible">
-          <el-select v-model="flowSelect" placeholder="请选择操作符">
+          <el-select v-model="flowSelect" placeholder="请选择操作符" clearable>
             <el-option v-for="item in operations" :key="item.op" :label="item.op" :value="item.op"></el-option>
           </el-select>或
-          <el-select v-model="flowRuleSelect" placeholder="请选择规则">
-            <el-option v-for="item in list" :key="item.id" :label="item.name" :value="item.name"></el-option>
+          <el-select v-model="flowRuleSelect" placeholder="请选择规则" clearable>
+            <el-option v-for="item in list" clearable :key="item.id" :label="item.name" :value="item.name"></el-option>
           </el-select>
           <div slot="footer" class="dialog-footer">
             <el-button @click="flowFormVisible = false">取消</el-button>

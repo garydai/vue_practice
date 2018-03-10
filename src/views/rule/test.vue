@@ -39,6 +39,14 @@
         </div>
       </div>
     </el-card>
+    <el-card>
+      <div slot="header" class="clearfix">
+        <span>测试用例</span>
+      </div>
+      <div>
+        <el-button size="mini" type="primary" @click="onTest">运行</el-button>
+      </div>
+    </el-card>
     <el-card class="box-card">
       <div slot="header" class="clearfix">
         <span>结果</span>
@@ -53,8 +61,7 @@
 </template>
 
 <script>
-import { getVariables } from '@/api/rule'
-import { executeRule } from '@/api/rule'
+import { getVariables, executeRule, testRule } from '@/api/rule'
 const constant = require('@/utils/constant')
 
 export default {
@@ -112,6 +119,12 @@ export default {
         value: ''
       }
       this.inputs.push(condition)
+    },
+    onTest() {
+      this.result = ''
+      testRule().then(response => {
+        this.result = JSON.stringify(response.data, null, 2)
+      })
     }
   }
 }

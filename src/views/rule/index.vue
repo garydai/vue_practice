@@ -44,20 +44,20 @@
       <el-dialog :visible.sync="dialogFormVisible">
         <el-form :model="form" ref="ruleForm" label-width="180px" class="demo-ruleForm">
           <el-form-item label="如果命中该drl，则运行" prop="variable">
-            <el-select v-model="form.hit" placeholder="请选择规则集">
+            <el-select v-model="form.hit" placeholder="请选择规则集" clearable>
               <el-option v-for="t in filterList(list)" :key="t.id" :label="t.name" :value="t.id"></el-option>
             </el-select>
             或
-            <el-select v-model="form.hitAction" placeholder="请选择策略">
+            <el-select v-model="form.hitAction" placeholder="请选择策略" clearable>
               <el-option v-for="t in Object.keys(actionMap)" :key="t" :label="actionMap[t]" :value="t"></el-option>
             </el-select>
           </el-form-item>
           <el-form-item label="否则，运行" prop="variable">
-            <el-select v-model="form.nothit" placeholder="请选择规则集">
+            <el-select v-model="form.nothit" placeholder="请选择规则集" clearable>
               <el-option v-for="t in filterList(list)" :key="t.id" :label="t.name" :value="t.id"></el-option>
             </el-select>
             或
-            <el-select v-model="form.nothitAction" placeholder="请选择策略">
+            <el-select v-model="form.nothitAction" placeholder="请选择策略" clearable>
               <el-option v-for="t in Object.keys(actionMap)" :key="t" :label="actionMap[t]" :value="t"></el-option>
             </el-select> 
           </el-form-item>
@@ -70,7 +70,7 @@
       <el-dialog :visible.sync="flowVisible">
         <el-form :model="flow" ref="ruleForm" label-width="100px" class="demo-ruleForm">
           <el-form-item label="新流程" prop="variable">
-            <el-select v-model="flow.id" placeholder="请选择规则集">
+            <el-select v-model="flow.id" placeholder="请选择规则集" clearable>
               <el-option v-for="t in filterList(list)" :key="t.id" :label="t.name" :value="t.id">
               </el-option>
             </el-select>
