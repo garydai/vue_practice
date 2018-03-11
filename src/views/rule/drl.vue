@@ -15,7 +15,7 @@
         <el-card class="box-card">
           <div slot="header" class="clearfix">
             <span>规则</span>
-            <el-input style="width: 150px;" class="filter-item" :placeholder="item.name" v-model="list[index].name">
+            <el-input style="width: 200px;" class="filter-item" :placeholder="item.name" v-model="list[index].name">
             </el-input>
             <el-button type="danger" size="mini" @click="handleDeleteRule(index)">删除规则
             </el-button>      
@@ -28,7 +28,7 @@
               <el-table :data="item.rule" style="width: 100%">
                 <el-table-column width="180">
                   <template slot-scope="scope">
-                    <el-select v-if="scope.$index % 2 == 0" style="width: 150px" class="filter-item" v-model="scope.row.l" clearable>
+                    <el-select filterable v-if="scope.$index % 2 == 0" style="width: 150px" class="filter-item" v-model="scope.row.l" clearable>
                       <el-option v-for="t in Object.keys(variables)" :key="t" :label="mapper[t]" :value="mapper[t]">
                       </el-option>
                     </el-select>
@@ -334,7 +334,7 @@ export default {
         'name': '',
         'rule': []
       }
-      this.list.push(rule)
+      this.list.unshift(rule)
     },
     handleUpdateRight(rule) {
       this.curRule = rule

@@ -20,9 +20,8 @@
         </el-table-column>
         <el-table-column label="操作">
           <template slot-scope="scope">
-            <el-button v-if="scope.row.enabled" type="danger" @click="disableDrl(scope.row)" size="mini" icon="el-icon-edit">关闭</el-button>
-            <el-button v-else type="primary" @click="enableDrl(scope.row)" size="mini" icon="el-icon-edit">启用</el-button>
             <el-button type="primary" @click="modify(scope.row)" size="mini" icon="el-icon-edit">修改</el-button>
+            <el-button type="danger" @click="removeDrl(scope.row)" size="mini" icon="el-icon-delete">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -86,7 +85,7 @@
 </template>
 
 <script>
-import { insertFlow, activateRule, getList, getActions } from '@/api/rule'
+import { insertFlow, activateRule, getList, getActions, deleteDrl } from '@/api/rule'
 import { getFlow } from '@/api/rule'
 let nid = 100
 export default {
@@ -155,6 +154,12 @@ export default {
     },
     modify(row) {
       this.$router.push('/engine/drl?id=' + row.id)
+    },
+    removeDrl(row) {
+      deleteDrl({ id: row.id }).then(response => {
+        this.$message('删除成功')
+        this.fetchData()
+      })
     },
     renderContent(h, { node, data, store }) {
       return (

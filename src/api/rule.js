@@ -38,6 +38,10 @@ export function testRule(data) {
   return request.formPost('/test', data)
 }
 
+export function deleteDrl(data) {
+  return request.formPost('/delete', data)
+}
+
 export function activateRule(data) {
   return request.formPost('/activate', data)
 }
