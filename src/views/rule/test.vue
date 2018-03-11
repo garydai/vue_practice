@@ -8,9 +8,9 @@
       </el-button>
       <div style="margin-bottom:50px;">
         <el-table :data="inputs" style="width: 100%">
-          <el-table-column width="180">
+          <el-table-column width="200">
             <template slot-scope="scope">
-              <el-select style="width: 150px" class="filter-item" v-model="scope.row.key">
+              <el-select class="filter-item" v-model="scope.row.key">
                 <el-option v-for="t in Object.keys(variables)" :key="t" :label="mapper[t]" :value="mapper[t]">
                 </el-option>
               </el-select>
@@ -61,19 +61,18 @@
 </template>
 
 <script>
-import { getVariables, executeRule, testRule } from '@/api/rule'
-const constant = require('@/utils/constant')
+import { getVariables, testRule } from '@/api/rule'
 
 export default {
   data() {
     return {
       variables: {},
       inputs: [],
-      result: ''
+      result: '',
+      mapper: {}
     }
   },
   created() {
-    this.mapper = constant.m
     this.fetchData()
     var inputString = localStorage.getItem('testInput')
     if (inputString) {
@@ -87,9 +86,7 @@ export default {
     fetchData() {
       getVariables().then(response => {
         for (var key in response.data) {
-          if (Object.keys(response.data[key]).indexOf('serviceName') === -1) {
-            this.variables[key] = response.data[key]
-          }
+          this.variables[key] = response.data[key]
         }
         for (var key2 in this.variables) {
           this.mapper[this.variables[key2].displayName] = key2
@@ -109,7 +106,23 @@ export default {
       if (Object.keys(p).length === 0) {
         this.$message('请添加条件')
       }
-      executeRule(p).then(response => {
+      var test = ''
+      Object.keys(p).forEach(function(item) {
+        switch (this.variables[item['type']]) {
+          case 'Integer':
+            p[item] = parseInt(p[item])
+            break
+          case 'Double':
+            p[item] = parseFloat(p[item])
+            break
+          case 'Boolean':
+            p[item] = parseInt(p[item])
+            break
+        }
+        test = test + ',' + item + ':' + p[item]
+      }, this)
+      test = test.substr(1)
+      testRule({ 'req': '{' + test + '}' }).then(response => {
         this.result = JSON.stringify(response.data, null, 2)
       })
     },
