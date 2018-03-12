@@ -10,7 +10,7 @@
         <el-table :data="inputs" style="width: 100%">
           <el-table-column width="200">
             <template slot-scope="scope">
-              <el-select class="filter-item" v-model="scope.row.key">
+              <el-select filterable clearable class="filter-item" v-model="scope.row.key">
                 <el-option v-for="t in Object.keys(variables)" :key="t" :label="mapper[t]" :value="mapper[t]">
                 </el-option>
               </el-select>
@@ -108,7 +108,7 @@ export default {
       }
       var test = ''
       Object.keys(p).forEach(function(item) {
-        switch (this.variables[item['type']]) {
+        switch (this.variables[item]['type']) {
           case 'Integer':
             p[item] = parseInt(p[item])
             break
@@ -118,8 +118,12 @@ export default {
           case 'Boolean':
             p[item] = parseInt(p[item])
             break
+          case 'String':
+            p[item] = '"' + p[item] + '"'
+            break
         }
         test = test + ',' + item + ':' + p[item]
+        console.log(test)
       }, this)
       test = test.substr(1)
       testRule({ 'req': '{' + test + '}' }).then(response => {
